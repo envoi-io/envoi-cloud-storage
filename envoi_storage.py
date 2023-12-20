@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import urllib.parse
+from types import SimpleNamespace
 
 try:
     import boto3
@@ -383,13 +384,55 @@ class EnvoiCommandLineUtility:
             return 1
 
 
+def lambda_run_command(command, args):
+    # Normalize the input to mimic the argparse output.
+    parser = command.init_parser()
+    # noinspection PyProtectedMember
+    opts_dict = {a.dest: a.default for a in parser._actions if isinstance(a, argparse._StoreAction)}
+    opts_dict.update(args)
+    print('Opts:', opts_dict)
+    opts = SimpleNamespace(**opts_dict)
+
+    response = command(opts, auto_exec=False).run()
+    response_type = type(response)
+    print("Response Type", response_type)
+    print("Response", response)
+
+    return response
+
+
+def lambda_get_command_info_from_event(event):
+    """
+    Determine the command and its arguments from the given event.
+
+    :param event: The event object containing the command details.
+    :return: A tuple containing the command and its arguments.
+
+    :raises ValueError: If the event source is unhandled.
+
+    note:: The `event` parameter should be a dictionary object.
+
+    """
+    command_name = os.getenv('COMMAND_NAME', 'EnvoiStorageWekaAwsCommand')
+    command = globals()[command_name]
+    if 'eventSourceArn' in event:
+        event_source_arn = event['eventSourceArn']
+        if 'body' in event:
+            command_args = json.loads(event['body'])
+        else:
+            raise ValueError(f"Unhandled event source: {event_source_arn}")
+            # records = event['Records']
+            # record = records[0]
+    else:
+        command_args = event
+
+    return command, command_args
+
+
 def lambda_handler(event, _context):
     print("Received event: " + json.dumps(event, indent=2))
-
-    opts = {}
-    command = EnvoiStorageWekaAwsCommand(opts)
-
-    return {"success": True}
+    command, command_args = lambda_get_command_info_from_event(event)
+    return lambda_run_command(command, command_args)
 
 
 if __name__ == '__main__':
