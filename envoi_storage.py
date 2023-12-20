@@ -232,6 +232,8 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         if template_url is not None:
             cfn_create_stack_args['TemplateURL'] = template_url
+        elif hasattr(opts, 'cfn_template_url'):
+            cfn_create_stack_args['TemplateURL'] = opts.cfn_template_url
 
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
