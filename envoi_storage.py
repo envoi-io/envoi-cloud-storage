@@ -225,7 +225,8 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         client = boto3.client('cloudformation', **cfn_client_args)
 
-        cfn_create_stack_args = {}
+        cfn_create_stack_args = {
+        }
 
         if hasattr(opts, 'cfn_template_uri'):
             cfn_create_stack_args['TemplateURL'] = opts.cfn_template_uri
@@ -235,6 +236,8 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
+
+        cfn_create_stack_args['Parameters'] = [{'DistToken': opts.token}]
 
         client.create_stack(StackName=opts.stack_name, **cfn_create_stack_args)
 
@@ -326,6 +329,11 @@ class EnvoiCommandLineUtility:
         except Exception as e:
             logger.exception(e)
             return 1
+
+
+def lambda_handler(event, _context):
+    print("Received event: " + json.dumps(event, indent=2))
+    return {"success": True}
 
 
 if __name__ == '__main__':
