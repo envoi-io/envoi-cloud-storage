@@ -49,13 +49,31 @@ class WekaApiClient:
             _headers = {**default_headers, **headers}
         return _headers
 
+    @classmethod
+    def handle_response(cls, response):
+        response_body = response.read()
+        content_type, header_attribs_raw = response.getheader("Content-Type").split(";")
+        header_attribs = dict(map(lambda x: x.strip().split("="), header_attribs_raw.split(",")))
+        charset = header_attribs.get("charset", "utf-8")
+        try:
+            if content_type == 'text/plain:':
+                return response_body.decode(charset)
+            if content_type == "application/json":
+                response_as_string = response_body.decode(charset)
+                return json.loads(response_as_string) if response_as_string.strip() else None
+            else:
+                return response_body
+        except json.JSONDecodeError as e:
+            logger.error(f"Error decoding response: {e}")
+            return response_body
+
     def get(self, endpoint, query_params=None, headers=None, default_headers=None):
         url = self.base_path + "/" + endpoint
         if query_params:
             url += "?" + urllib.parse.urlencode(query_params)
         self.conn.request("GET", url, headers=self.prepare_headers(headers=headers, default_headers=default_headers))
         response = self.conn.getresponse()
-        return json.loads(response.read())
+        return self.__class__.handle_response(response)
 
     def post(self, endpoint, data, query_params=None, headers=None, default_headers=None):
         url = self.base_path + "/" + endpoint
@@ -64,7 +82,7 @@ class WekaApiClient:
         self.conn.request("POST", url, json.dumps(data), headers=self.prepare_headers(headers=headers,
                                                                                       default_headers=default_headers))
         response = self.conn.getresponse()
-        return json.loads(response.read())
+        return self.__class__.handle_response(response)
 
     def get_template_releases(self, page=1):
         endpoint = "release"
@@ -238,7 +256,8 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
 
-        client.create_stack(StackName=opts.stack_name, **cfn_create_stack_args)
+        response = client.create_stack(**cfn_create_stack_args)
+        return response
 
     def run(self, opts=None):
         if opts is None:
@@ -256,16 +275,19 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         generate_cloudformation_template_response = client.generate_cloudformation_template(
             **generate_cloudformation_template_opts)
+        response = generate_cloudformation_template_response
 
         if opts.create_stack:
             template_url = generate_cloudformation_template_response['url']
-            self.create_stack(opts, template_url=template_url)
-        else:
-            try:
-                response = json.dumps(generate_cloudformation_template_response, indent=4, sort_keys=True, default=str)
-            except TypeError:
-                response = generate_cloudformation_template_response
-            print(response)
+            response = self.create_stack(opts, template_url=template_url)
+
+        try:
+            response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
+        except TypeError:
+            response_to_print = response
+        print(response_to_print)
+
+        return response
 
 
 class EnvoiCommandLineUtility:
