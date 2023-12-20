@@ -228,6 +228,21 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         parser.add_argument('--cfn-role-arn', type=str, required=False,
                             help='IAM Role to use when creating the stack')
 
+        # CloudFormation Template Parameter Arguments
+        parser.add_argument('--template-param-admin-password', type=str, required=False,
+                            help='Password for first "admin" user created in the cluster '
+                                 '(default: "admin")'
+                                 'Non-default password must contain at least 8 characters, with at least one '
+                                 'uppercase letter, one lowercase letter, and one number or special character')
+        parser.add_argument('--template-param-key-name', type=str, required=False,
+                            help='[Required when creating the stack]'
+                                 'Subnet ID of the subnet in which the cluster would be installed')
+        parser.add_argument('--template-param-subnet-id', type=str, required=False,
+                            help='[Required when creating the stack]'
+                                 'A key with which you can connect to the new instances')
+        parser.add_argument('--template-param-vpc-id', type=str, required=False,
+                            help='[Required when creating the stack]'
+                                 'VPC ID of the VPC in which the cluster would be installed')
         return parser
 
     def create_stack(self, opts=None, template_url=None):
@@ -242,6 +257,20 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
             cfn_client_args['region_name'] = opts.aws_region
 
         client = boto3.client('cloudformation', **cfn_client_args)
+        template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
+
+        template_parameters_to_check = {
+            'template_param_admin_password': 'AdminPassword',
+            'template_param_key_name': 'KeyName',
+            'template_param_subnet_id': 'SubnetId',
+            'template_param_vpc_id': 'VpcId',
+        }
+
+        for opts_param_name, template_param_name in template_parameters_to_check.items():
+            if hasattr(opts, opts_param_name):
+                value = getattr(opts, opts_param_name)
+                if value is not None:
+                    template_parameters.append({'ParameterKey': template_param_name, 'ParameterValue': value})
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
