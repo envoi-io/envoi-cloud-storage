@@ -207,17 +207,17 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
                             help='Template version.')
         parser.add_argument('-bc', '--backend-instance-count', type=int, default=6,
                             help='Backend instance count.')
-        parser.add_argument('-bt', '--backend-instance-type', type=str, required=True,
+        parser.add_argument('-bt', '--backend-instance-type', type=str, default='i3en.2xlarge',
                             help='Backend instance type.')
-        parser.add_argument('-cc', '--client-instance-count', type=int, required=False,
+        parser.add_argument('-cc', '--client-instance-count', type=int, default=0,
                             help='Client instance count.')
-        parser.add_argument('-ct', '--client-instance-type', type=str, required=False,
+        parser.add_argument('-ct', '--client-instance-type', type=str, default='r3.xlarge',
                             help='Client instance type.')
         parser.add_argument('-ci', '--client-ami-id', type=str, required=False,
                             help='Client AMI ID.')
 
         # CloudFormation Specific Arguments
-        parser.add_argument('--create-stack', action='store_true', required=False,
+        parser.add_argument('--create-stack', action='store', default=False,
                             help='Triggers the Creation of the stack.')
         parser.add_argument('--stack-name', type=str, default="Weka",
                             help='Stack name.')
@@ -245,7 +245,7 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
-            'Parameters': [{'DistToken': opts.token}]
+            'Parameters': template_parameters
         }
 
         if template_url is not None:
