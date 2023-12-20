@@ -126,13 +126,29 @@ class EnvoiCommand:
             self.run()
 
     @classmethod
-    def init_parser(cls, subparsers, command_name=None):
-
-        if subparsers is None:
-            parser = argparse.ArgumentParser(description=cls.DESCRIPTION)
+    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
+        if sub_parsers is None:
+            parser = argparse.ArgumentParser(description=cls.DESCRIPTION, parents=parent_parsers or [])
         else:
-            parser = subparsers.add_parser(command_name or cls.__name__.lower(), help=cls.DESCRIPTION)
+            parser = sub_parsers.add_parser(command_name or cls.__name__.lower(), help=cls.DESCRIPTION,
+                                            parents=parent_parsers or [])
         parser.set_defaults(handler=cls)
+        return parser
+
+    @classmethod
+    def process_sub_commands(cls, parser, parent_parsers, sub_commands, dest=None):
+        sub_command_parsers = {}
+        sub_parsers = parser.add_subparsers(dest=dest)
+
+        for sub_command_name, sub_command_handler in sub_commands.items():
+            if sub_command_handler is None:
+                continue
+            sub_command_parser = sub_command_handler.init_parser(command_name=sub_command_name,
+                                                                 parent_parsers=parent_parsers,
+                                                                 sub_parsers=sub_parsers)
+            sub_command_parser.required = True
+            sub_command_parsers[sub_command_name] = sub_command_parser
+
         return parser
 
     def run(self):
@@ -145,21 +161,15 @@ class EnvoiStorageWekaCommand(EnvoiCommand):
         super().__init__(opts, auto_exec)
 
     @classmethod
-    def init_parser(cls, subparsers, command_name=None):
-        parser = super().init_parser(subparsers, command_name)
+    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
+        parser = super().init_parser(command_name, parent_parsers, sub_parsers)
 
         sub_commands = {
             'aws': EnvoiStorageWekaAwsCommand,
         }
 
         if sub_commands is not None:
-            sub_command_parsers = {}
-            sub_parsers = parser.add_subparsers(dest='weka_aws_command')
-
-            for sub_command_name, sub_command_handler in sub_commands.items():
-                sub_command_parser = sub_command_handler.init_parser(sub_parsers, command_name=sub_command_name)
-                sub_command_parser.required = True
-                sub_command_parsers[sub_command_name] = sub_command_parser
+            cls.process_sub_commands(parser, parent_parsers, sub_commands, dest='weka_aws_command')
 
         return parser
 
@@ -170,24 +180,35 @@ class EnvoiStorageWekaCommand(EnvoiCommand):
 class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
     @classmethod
-    def init_parser(cls, subparsers, command_name=None):
-        parser = super().init_parser(subparsers, command_name)
+    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
+        parser = super().init_parser(command_name, parent_parsers, sub_parsers)
 
+        # Weka CloudFormation Template Generation Arguments
         parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
-        parser.add_argument('--template_version', type=str, default='latest', help='Template version.')
-        parser.add_argument('-bc', '--backend-instance-count', type=int, default=6, help='Backend instance count.')
+        parser.add_argument('--template_version', type=str, default='latest',
+                            help='Template version.')
+        parser.add_argument('-bc', '--backend-instance-count', type=int, default=6,
+                            help='Backend instance count.')
         parser.add_argument('-bt', '--backend-instance-type', type=str, required=True,
                             help='Backend instance type.')
         parser.add_argument('-cc', '--client-instance-count', type=int, required=False,
                             help='Client instance count.')
         parser.add_argument('-ct', '--client-instance-type', type=str, required=False,
                             help='Client instance type.')
+        parser.add_argument('-ci', '--client-ami-id', type=str, required=False,
+                            help='Client AMI ID.')
 
-        parser.add_argument('--create-stack', action='store_true', required=False, help='Create stack.')
-        parser.add_argument('--stack-name', type=str, default="Weka", help='Stack name.')
-        parser.add_argument('--aws-region', type=str, required=False, help='AWS region.')
-        parser.add_argument('--aws-profile', type=str, required=False, help='AWS profile.')
-        parser.add_argument('--cfn-role-arn', type=str, required=False, help='IAM Role to use when creating the stack')
+        # CloudFormation Specific Arguments
+        parser.add_argument('--create-stack', action='store_true', required=False,
+                            help='Triggers the Creation of the stack.')
+        parser.add_argument('--stack-name', type=str, default="Weka",
+                            help='Stack name.')
+        parser.add_argument('--aws-region', type=str, required=False,
+                            help='AWS region.')
+        parser.add_argument('--aws-profile', type=str, required=False,
+                            help='AWS profile.')
+        parser.add_argument('--cfn-role-arn', type=str, required=False,
+                            help='IAM Role to use when creating the stack')
 
         return parser
 
@@ -217,7 +238,6 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
 
         client.create_stack(StackName=opts.stack_name, **cfn_create_stack_args)
 
-
     def run(self, opts=None):
         if opts is None:
             opts = self.opts
@@ -235,15 +255,14 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         generate_cloudformation_template_response = client.generate_cloudformation_template(
             **generate_cloudformation_template_opts)
 
-        try:
-            response = json.dumps(generate_cloudformation_template_response, indent=4, sort_keys=True, default=str)
-        except TypeError:
-            response = generate_cloudformation_template_response
-
         if opts.create_stack:
-            template_url = response['url']
+            template_url = generate_cloudformation_template_response['url']
             self.create_stack(opts, template_url=template_url)
         else:
+            try:
+                response = json.dumps(generate_cloudformation_template_response, indent=4, sort_keys=True, default=str)
+            except TypeError:
+                response = generate_cloudformation_template_response
             print(response)
 
 
@@ -251,13 +270,12 @@ class EnvoiCommandLineUtility:
 
     @classmethod
     def parse_command_line(cls, cli_args, env_vars, sub_commands=None):
-        parser = argparse.ArgumentParser(
-            description='Envoi Storage Command Line Utility',
-        )
+        parent_parser = argparse.ArgumentParser(add_help=False)
+        parent_parser.add_argument("--log-level", dest="log_level", default="WARNING",
+                                   help="Set the logging level (options: DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 
-        parser.add_argument("--log-level", dest="log_level",
-                            default="WARNING",
-                            help="Set the logging level (options: DEBUG, INFO, WARNING, ERROR, CRITICAL)")
+        # main parser
+        parser = argparse.ArgumentParser(description='Envoi Storage Command Line Utility', parents=[parent_parser])
 
         if sub_commands is not None:
             sub_command_parsers = {}
