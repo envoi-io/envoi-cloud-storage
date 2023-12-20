@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 import argparse
 import base64
-import boto3
 import http.client
 import json
 import logging
 import os
 import sys
 import urllib.parse
+
+try:
+    import boto3
+except ImportError:
+    print("Missing dependency boto3. Try running 'pip install boto3'")
+    sys.exit(1)
 
 logger = logging.getLogger(__name__)
 
