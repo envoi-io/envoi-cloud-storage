@@ -226,18 +226,15 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         client = boto3.client('cloudformation', **cfn_client_args)
 
         cfn_create_stack_args = {
+            'StackName': opts.stack_name,
+            'Parameters': [{'DistToken': opts.token}]
         }
-
-        if hasattr(opts, 'cfn_template_uri'):
-            cfn_create_stack_args['TemplateURL'] = opts.cfn_template_uri
 
         if template_url is not None:
             cfn_create_stack_args['TemplateURL'] = template_url
 
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
-
-        cfn_create_stack_args['Parameters'] = [{'DistToken': opts.token}]
 
         client.create_stack(StackName=opts.stack_name, **cfn_create_stack_args)
 
@@ -288,7 +285,9 @@ class EnvoiCommandLineUtility:
             for sub_command_name, sub_command_handler in sub_commands.items():
                 if sub_command_handler is None:
                     continue
-                sub_command_parser = sub_command_handler.init_parser(sub_parsers, command_name=sub_command_name)
+                sub_command_parser = sub_command_handler.init_parser(command_name=sub_command_name,
+                                                                     parent_parsers=[parent_parser],
+                                                                     sub_parsers=sub_parsers)
                 sub_command_parser.required = True
                 sub_command_parsers[sub_command_name] = sub_command_parser
 
@@ -333,6 +332,10 @@ class EnvoiCommandLineUtility:
 
 def lambda_handler(event, _context):
     print("Received event: " + json.dumps(event, indent=2))
+
+    opts = {}
+    command = EnvoiStorageWekaAwsCommand(opts)
+
     return {"success": True}
 
 
