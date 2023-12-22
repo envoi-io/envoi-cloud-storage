@@ -18,6 +18,13 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class EnvoiArgumentParser(argparse.ArgumentParser):
+
+    def to_dict(self):
+        # noinspection PyProtectedMember
+        return {a.dest: a.default for a in self._actions if isinstance(a, argparse._StoreAction)}
+
+
 class WekaApiClient:
     DEFAULT_HOST = "get.weka.io"
     DEFAULT_HOST_PORT = 443
