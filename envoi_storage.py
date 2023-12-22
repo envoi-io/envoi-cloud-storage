@@ -213,15 +213,15 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
         parser.add_argument('--template_version', type=str, default='latest',
                             help='Template version.')
-        parser.add_argument('-bc', '--backend-instance-count', type=int, default=6,
+        parser.add_argument('--backend-instance-count', type=int, default=6,
                             help='Backend instance count.')
-        parser.add_argument('-bt', '--backend-instance-type', type=str, default='i3en.2xlarge',
+        parser.add_argument('--backend-instance-type', type=str, default='i3en.2xlarge',
                             help='Backend instance type.')
-        parser.add_argument('-cc', '--client-instance-count', type=int, default=0,
+        parser.add_argument('--client-instance-count', type=int, default=0,
                             help='Client instance count.')
-        parser.add_argument('-ct', '--client-instance-type', type=str, default='r3.xlarge',
+        parser.add_argument('--client-instance-type', type=str, default='r3.xlarge',
                             help='Client instance type.')
-        parser.add_argument('-ci', '--client-ami-id', type=str, required=False,
+        parser.add_argument('--client-ami-id', type=str, required=False,
                             help='Client AMI ID.')
 
         # CloudFormation Specific Arguments
