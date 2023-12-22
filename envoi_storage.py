@@ -347,6 +347,7 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         # Weka CloudFormation Template Generation Arguments
         parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
         parser.add_argument('--template_version', type=str, default='latest',
+        parser.add_argument('--token', type=str, required=True, help='API Token.')
                             help='Template version.')
         parser.add_argument('--backend-instance-count', type=int, default=6,
                             help='Backend instance count.')
