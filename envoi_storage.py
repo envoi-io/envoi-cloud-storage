@@ -529,8 +529,7 @@ class EnvoiCommandLineUtility(EnvoiCommand):
 def lambda_run_command(command, args):
     # Normalize the input to mimic the argparse output.
     parser = command.init_parser()
-    # noinspection PyProtectedMember
-    opts_dict = {a.dest: a.default for a in parser._actions if isinstance(a, argparse._StoreAction)}
+    opts_dict = parser.to_dict()
     opts_dict.update(args)
     print('Opts:', opts_dict)
     opts = SimpleNamespace(**opts_dict)
