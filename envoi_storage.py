@@ -203,6 +203,22 @@ class EnvoiCommand:
 
 class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
+    cfn_param_names = {
+        "DeploymentType": "deployment_type",
+        "AnvilConfiguration": "anvil_configuration",
+        "AnvilInstanceType": "anvil_instance_type",
+        "DsxInstanceType": "dsx_instance_type",
+        "DsxInstanceCount": "dsx_instance_count",
+        "AnvilMetaDiskSize": "anvil_meta_disk_size",
+        "DsxDataDiskSize": "dsx_data_disk_size",
+        "DsxAddVols": "dsx_add_vols",
+        "VpcId": "vpc_id",
+        "AvailZone1": "avail_zone1",
+        "Subnet1Id": "subnet1_id",
+        "HaSubnet1Cidr": "ha_subnet1_cidr",
+        "ClusterIp": "cluster_ip",
+    }
+
     @classmethod
     def init_parser(cls, **kwargs):
         parser = super().init_parser(**kwargs)
