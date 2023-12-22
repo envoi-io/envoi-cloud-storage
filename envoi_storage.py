@@ -12,8 +12,9 @@ from types import SimpleNamespace
 try:
     import boto3
 except ImportError:
-    print("Missing dependency boto3. Try running 'pip install boto3'")
-    sys.exit(1)
+    if __name__ == '__main__':
+        print("Missing dependency boto3. Try running 'pip install boto3'")
+        sys.exit(1)
 
 logger = logging.getLogger(__name__)
 
