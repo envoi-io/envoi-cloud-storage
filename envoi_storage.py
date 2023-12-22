@@ -553,9 +553,9 @@ class EnvoiStorageWekaAwsCreateTemplateAndStackCommand(EnvoiCommand):
 
 class EnvoiStorageWekaAwsCommand(EnvoiCommand):
     subcommands = {
-        'create-template-and-stack': EnvoiStorageWekaAwsCreateTemplateAndStackCommand,
         'create-stack': EnvoiStorageWekaAwsCreateStackCommand,
-        'generate-template': EnvoiStorageWekaAwsGenerateTemplateCommand,
+        'create-template': EnvoiStorageWekaAwsGenerateTemplateCommand,
+        'create-template-and-stack': EnvoiStorageWekaAwsCreateTemplateAndStackCommand,
     }
 
 
