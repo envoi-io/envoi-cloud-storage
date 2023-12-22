@@ -251,7 +251,7 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
                             help="Anvil instance type")
         parser.add_argument("--anvil-instance-disk-size", type=int, default=2000,
                             help="Anvil instance disk size (GB)")
-        parser.add_argument("deployment-type", choices=["add", "new"],
+        parser.add_argument("--deployment-type", choices=["add", "new"],
                             help="Deployment type: add or new")
         parser.add_argument("--dsx-node-instance-type", default="c5.24xlarge",
                             help="DSX node instance type")
