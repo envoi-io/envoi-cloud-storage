@@ -361,29 +361,23 @@ class EnvoiStorageQumuloCommand(EnvoiCommand):
     }
 
 
-class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
+class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
     @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+    def init_parser(cls, **kwargs):
+        parser = super().init_parser(**kwargs)
 
         # Weka CloudFormation Template Generation Arguments
         parser.add_argument('--token', type=str, required=True, help='API Token.')
-        parser.add_argument('--template-version', type=str, default='latest',
-                            help='Template version.')
-        parser.add_argument('--backend-instance-count', type=int, default=6,
-                            help='Backend instance count.')
-        parser.add_argument('--backend-instance-type', type=str, default='i3en.2xlarge',
-                            help='Backend instance type.')
-        parser.add_argument('--client-instance-count', type=int, default=0,
-                            help='Client instance count.')
-        parser.add_argument('--client-instance-type', type=str, default='r3.xlarge',
-                            help='Client instance type.')
-        parser.add_argument('--client-ami-id', type=str, required=False,
-                            help='Client AMI ID.')
+        parser.add_argument('--template-url', type=str, required=True,
+                            help='The URL to the CLoudFormation template')
 
+        parser = cls.add_uniq_arguments(parser)
+        parser = cls.add_template_param_arguments(parser, required_params_required=True)
+        return parser
+
+    @classmethod
+    def add_uniq_arguments(cls, parser):
         # CloudFormation Specific Arguments
-        parser.add_argument('--create-stack', action='store', default=False,
-                            help='Triggers the Creation of the stack.')
         parser.add_argument('--stack-name', type=str, default="Weka",
                             help='Stack name.')
         parser.add_argument('--aws-region', type=str, required=False,
@@ -410,10 +404,27 @@ class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
                                  'VPC ID of the VPC in which the cluster would be installed')
         return parser
 
-    def create_stack(self, opts=None, template_url=None):
-        if opts is None:
-            opts = self.opts
+    @classmethod
+    def add_template_param_arguments(cls, parser, required_params_required=True):
+        # CloudFormation Template Parameter Arguments
+        parser.add_argument('--template-param-admin-password', type=str, required=required_params_required,
+                            help='Password for first "admin" user created in the cluster '
+                                 '(default: "admin")'
+                                 'Non-default password must contain at least 8 characters, with at least one '
+                                 'uppercase letter, one lowercase letter, and one number or special character')
+        parser.add_argument('--template-param-key-name', type=str, required=required_params_required,
+                            help='[Required when creating the stack] '
+                                 'Subnet ID of the subnet in which the cluster would be installed')
+        parser.add_argument('--template-param-subnet-id', type=str, required=required_params_required,
+                            help='[Required when creating the stack] '
+                                 'A key with which you can connect to the new instances')
+        parser.add_argument('--template-param-vpc-id', type=str, required=required_params_required,
+                            help='[Required when creating the stack] '
+                                 'VPC ID of the VPC in which the cluster would be installed')
+        return parser
 
+    @classmethod
+    def create_stack(cls, opts, template_url=None):
         cfn_client_args = {}
         if opts.aws_profile is not None:
             cfn_client_args['profile_name'] = opts.aws_profile
@@ -444,8 +455,10 @@ class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
 
         if template_url is not None:
             cfn_create_stack_args['TemplateURL'] = template_url
-        elif hasattr(opts, 'cfn_template_url'):
-            cfn_create_stack_args['TemplateURL'] = opts.cfn_template_url
+        elif hasattr(opts, 'template_url'):
+            cfn_create_stack_args['TemplateURL'] = opts.template_url
+        else:
+            raise ValueError("Missing required parameter template_url")
 
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
@@ -453,10 +466,41 @@ class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
         response = client.create_stack(**cfn_create_stack_args)
         return response
 
-    def run(self, opts=None):
+    def run(self, opts=None, template_url=None):
         if opts is None:
             opts = self.opts
 
+        return self.__class__.create_stack(opts=opts, template_url=template_url)
+
+
+class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
+    @classmethod
+    def init_parser(cls, **kwargs):
+        parser = super().init_parser(**kwargs)
+
+        # Weka CloudFormation Template Generation Arguments
+        parser.add_argument('--token', type=str, required=True, help='API Token.')
+
+        return cls.add_uniq_arguments(parser)
+
+    @classmethod
+    def add_uniq_arguments(cls, parser):
+        parser.add_argument('--template-version', type=str, default='latest',
+                            help='Template version.')
+        parser.add_argument('--backend-instance-count', type=int, default=6,
+                            help='Backend instance count.')
+        parser.add_argument('--backend-instance-type', type=str, default='i3en.2xlarge',
+                            help='Backend instance type.')
+        parser.add_argument('--client-instance-count', type=int, default=0,
+                            help='Client instance count.')
+        parser.add_argument('--client-instance-type', type=str, default='r3.xlarge',
+                            help='Client instance type.')
+        parser.add_argument('--client-ami-id', type=str, required=False,
+                            help='Client AMI ID.')
+        return parser
+
+    @classmethod
+    def generate_template(cls, opts):
         client = WekaApiClient(token=opts.token)
 
         generate_cloudformation_template_opts = {
@@ -469,11 +513,51 @@ class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
 
         generate_cloudformation_template_response = client.generate_cloudformation_template(
             **generate_cloudformation_template_opts)
-        response = generate_cloudformation_template_response
+        return generate_cloudformation_template_response
+
+    def run(self, opts=None):
+        if opts is None:
+            opts = self.opts
+
+        response = self.__class__.generate_template(opts=opts)
+
+        try:
+            response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
+        except TypeError:
+            response_to_print = response
+        print(response_to_print)
+
+        return response
+
+
+class EnvoiStorageWekaAwsCreateTemplateAndStackCommand(EnvoiCommand):
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        # Weka CloudFormation Template Generation Arguments
+        parser.add_argument('--token', type=str, required=True, help='API Token.')
+        parser = EnvoiStorageWekaAwsGenerateTemplateCommand.add_uniq_arguments(parser)
+
+        parser.add_argument('--create-stack', action='store', default=False,
+                            help='Triggers the Creation of the stack.')
+        parser = EnvoiStorageWekaAwsCreateStackCommand.add_uniq_arguments(parser)
+        parser = EnvoiStorageWekaAwsCreateStackCommand.add_template_param_arguments(parser,
+                                                                                    required_params_required=False)
+        return parser
+
+    def run(self, opts=None):
+        if opts is None:
+            opts = self.opts
+
+        generate_cloudformation_template_response = (EnvoiStorageWekaAwsGenerateTemplateCommand
+                                                     .generate_template(opts=opts))
 
         if opts.create_stack:
             template_url = generate_cloudformation_template_response['url']
-            response = self.create_stack(opts, template_url=template_url)
+            response = EnvoiStorageWekaAwsCreateStackCommand(opts=opts, auto_exec=False).run(template_url=template_url)
+        else:
+            response = generate_cloudformation_template_response
 
         try:
             response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
@@ -486,7 +570,9 @@ class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
 
 class EnvoiStorageWekaAwsCommand(EnvoiCommand):
     subcommands = {
-        'create-cluster': EnvoiStorageWekaAwsCreateClusterCommand,
+        'create-template-and-stack': EnvoiStorageWekaAwsCreateTemplateAndStackCommand,
+        'create-stack': EnvoiStorageWekaAwsCreateStackCommand,
+        'generate-template': EnvoiStorageWekaAwsGenerateTemplateCommand,
     }
 
 
