@@ -201,38 +201,6 @@ class EnvoiCommand:
         pass
 
 
-class EnvoiStorageHammerspaceCommand(EnvoiCommand):
-
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
-
-        subcommands = {
-            'aws': EnvoiStorageHammerspaceAwsCommand,
-        }
-
-        if subcommands is not None:
-            cls.process_subcommands(parser, parent_parsers, subcommands, dest='hammerspace_command')
-
-        return parser
-
-
-class EnvoiStorageHammerspaceAwsCommand(EnvoiCommand):
-
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
-
-        subcommands = {
-            'create-cluster': EnvoiStorageHammerspaceAwsCreateClusterCommand,
-        }
-
-        if subcommands is not None:
-            cls.process_subcommands(parser, parent_parsers, subcommands, dest='hammerspace_aws_command')
-
-        return parser
-
-
 class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
     @classmethod
@@ -295,37 +263,49 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
         return parser
 
+    def run(self, opts=None):
+        if opts is None:
+            opts = self.opts
 
-class EnvoiStorageQumuloCommand(EnvoiCommand):
+        cfn_template_url = opts.get("template-url")
 
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+        template_parameters = []
+        for template_param_name, arg_name in self.cfn_param_names.items():
+            value = getattr(opts, arg_name)
+            if value is not None:
+                template_parameters.append({'ParameterKey': template_param_name, 'ParameterValue': value})
 
-        subcommands = {
-            'aws': EnvoiStorageQumuloAwsCommand,
+        cfn_create_stack_args = {
+            'StackName': opts.stack_name,
+            'Parameters':  template_parameters,
+            'TemplateURL': cfn_template_url,
         }
 
-        if subcommands is not None:
-            cls.process_subcommands(parser, parent_parsers, subcommands, dest='qumulo_command')
+        if opts.cfn_role_arn is not None:
+            cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
 
-        return parser
+        cfn_client_args = {}
+        if opts.aws_profile is not None:
+            cfn_client_args['profile_name'] = opts.aws_profile
+
+        if opts.aws_region is not None:
+            cfn_client_args['region_name'] = opts.aws_region
+
+        client = boto3.client('cloudformation', **cfn_client_args)
+        response = client.create_stack(**cfn_create_stack_args)
+        return response
 
 
-class EnvoiStorageQumuloAwsCommand(EnvoiCommand):
+class EnvoiStorageHammerspaceAwsCommand(EnvoiCommand):
+    subcommands = {
+        'create-cluster': EnvoiStorageHammerspaceAwsCreateClusterCommand,
+    }
 
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
 
-        subcommands = {
-            'create-cluster': EnvoiStorageQumuloAwsCreateClusterCommand,
-        }
-
-        if subcommands is not None:
-            cls.process_subcommands(parser, parent_parsers, subcommands, dest='qumulo_aws_command')
-
-        return parser
+class EnvoiStorageHammerspaceCommand(EnvoiCommand):
+    subcommands = {
+        'aws': EnvoiStorageHammerspaceAwsCommand,
+    }
 
 
 class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
@@ -353,24 +333,19 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         return parser
 
 
-class EnvoiStorageWekaCommand(EnvoiCommand):
-
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
-
-        subcommands = {
-            'aws': EnvoiStorageWekaAwsCommand,
-        }
-
-        if subcommands is not None:
-            cls.process_subcommands(parser, parent_parsers, subcommands, dest='weka_aws_command')
-
-        return parser
+class EnvoiStorageQumuloAwsCommand(EnvoiCommand):
+    subcommands = {
+        'create-cluster': EnvoiStorageQumuloAwsCreateClusterCommand,
+    }
 
 
-class EnvoiStorageWekaAwsCommand(EnvoiCommand):
+class EnvoiStorageQumuloCommand(EnvoiCommand):
+    subcommands = {
+        'aws': EnvoiStorageQumuloAwsCommand,
+    }
 
+
+class EnvoiStorageWekaAwsCreateClusterCommand(EnvoiCommand):
     @classmethod
     def init_parser(cls, parent_parsers=None, **kwargs):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
@@ -491,6 +466,18 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         print(response_to_print)
 
         return response
+
+
+class EnvoiStorageWekaAwsCommand(EnvoiCommand):
+    subcommands = {
+        'create-cluster': EnvoiStorageWekaAwsCreateClusterCommand,
+    }
+
+
+class EnvoiStorageWekaCommand(EnvoiCommand):
+    subcommands = {
+        'aws': EnvoiStorageWekaAwsCommand,
+    }
 
 
 class EnvoiCommandLineUtility(EnvoiCommand):
