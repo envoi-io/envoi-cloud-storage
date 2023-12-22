@@ -188,7 +188,7 @@ class EnvoiCommand:
                 continue
             if isinstance(subcommand_handler, str):
                 subcommand_handler = globals()[subcommand_handler]
-                
+
             subcommand_parser = subcommand_handler.init_parser(command_name=subcommand_name,
                                                                parent_parsers=parent_parsers,
                                                                subparsers=subparsers)
@@ -202,7 +202,6 @@ class EnvoiCommand:
 
 
 class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
-
     cfn_param_names = {
         "DeploymentType": "deployment_type",
         "AnvilConfiguration": "anvil_configuration",
@@ -293,7 +292,7 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
-            'Parameters':  template_parameters,
+            'Parameters': template_parameters,
             'TemplateURL': cfn_template_url,
         }
 
