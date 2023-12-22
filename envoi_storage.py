@@ -345,8 +345,6 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
 
         # Weka CloudFormation Template Generation Arguments
-        parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
-        parser.add_argument('--template_version', type=str, default='latest',
         parser.add_argument('--token', type=str, required=True, help='API Token.')
         parser.add_argument('--template-version', type=str, default='latest',
                             help='Template version.')
