@@ -33,7 +33,6 @@ class WekaApiClient:
     def __init__(self, token, host=DEFAULT_HOST, host_port=DEFAULT_HOST_PORT, base_path=DEFAULT_BASE_PATH):
         self.conn = None
         self.token = token
-        self.headers = {"Content-Type": "application/json", "Authorization": "Basic " + self.token}
         self.host = host
         self.host_port = host_port
         self.base_path = base_path
@@ -46,7 +45,7 @@ class WekaApiClient:
 
     def init_auth_header(self):
         encoded_token = base64.b64encode(f"{self.token}:".encode('ascii')).decode('ascii')
-        self.default_headers["Authorization"] = "Basic " + encoded_token
+        self.default_headers["Authorization"] = f"Basic {encoded_token}"
 
     def prepare_headers(self, headers=None, default_headers=None):
         if headers is None:
