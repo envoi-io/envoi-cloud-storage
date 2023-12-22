@@ -145,7 +145,9 @@ class WekaApiClient:
 
 
 class EnvoiCommand:
-    DESCRIPTION = ""
+    command_dest = "command"
+    description = ""
+    subcommands = {}
 
     def __init__(self, opts=None, auto_exec=True):
         self.opts = opts or {}
@@ -156,27 +158,41 @@ class EnvoiCommand:
     def init_parser(cls, command_name=None, parent_parsers=None, subparsers=None,
                     formatter_class=argparse.ArgumentDefaultsHelpFormatter):
         if subparsers is None:
-            parser = EnvoiArgumentParser(description=cls.DESCRIPTION, parents=parent_parsers or [],
+            parser = EnvoiArgumentParser(description=cls.description, parents=parent_parsers or [],
                                          formatter_class=formatter_class)
         else:
-            parser = subparsers.add_parser(command_name or cls.__name__.lower(), help=cls.DESCRIPTION,
+            parser = subparsers.add_parser(command_name or cls.__name__.lower(), help=cls.description,
                                            parents=parent_parsers or [],
                                            formatter_class=formatter_class)
         parser.set_defaults(handler=cls)
+
+        if cls.subcommands:
+            cls.process_subcommands(parser=parser, parent_parsers=parent_parsers, subcommands=cls.subcommands)
+
         return parser
 
     @classmethod
-    def process_subcommands(cls, parser, parent_parsers, subcommands, dest=None):
+    def process_subcommands(cls, parser, parent_parsers, subcommands, dest=None, add_subparser_args=None):
         subcommand_parsers = {}
-        subparsers = parser.add_subparsers(dest=dest)
+        if add_subparser_args is None:
+            add_subparser_args = {}
+        if dest is not None:
+            add_subparser_args['dest'] = dest
+        subparsers = parser.add_subparsers(**add_subparser_args)
 
-        for subcommand_name, subcommand_handler in subcommands.items():
+        for subcommand_name, subcommand_info in subcommands.items():
+            if not isinstance(subcommand_info, dict):
+                subcommand_info = {"handler": subcommand_info}
+            subcommand_handler = subcommand_info.get("handler", None)
             if subcommand_handler is None:
                 continue
+            if isinstance(subcommand_handler, str):
+                subcommand_handler = globals()[subcommand_handler]
+                
             subcommand_parser = subcommand_handler.init_parser(command_name=subcommand_name,
                                                                parent_parsers=parent_parsers,
                                                                subparsers=subparsers)
-            subcommand_parser.required = True
+            subcommand_parser.required = subcommand_info.get("required", True)
             subcommand_parsers[subcommand_name] = subcommand_parser
 
         return parser
