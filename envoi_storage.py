@@ -348,6 +348,7 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
         parser.add_argument('--template_version', type=str, default='latest',
         parser.add_argument('--token', type=str, required=True, help='API Token.')
+        parser.add_argument('--template-version', type=str, default='latest',
                             help='Template version.')
         parser.add_argument('--backend-instance-count', type=int, default=6,
                             help='Backend instance count.')
