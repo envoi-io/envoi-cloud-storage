@@ -10,6 +10,7 @@ import urllib.parse
 from types import SimpleNamespace
 
 try:
+    # noinspection PyUnresolvedReferences
     import boto3
 except ImportError:
     if __name__ == '__main__':
