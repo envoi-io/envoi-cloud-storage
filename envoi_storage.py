@@ -556,7 +556,10 @@ class EnvoiCommandLineUtility(EnvoiCommand):
 
             return 0
         except Exception as e:
-            logger.exception(e)
+            if logger.isEnabledFor(logging.DEBUG):
+                logger.exception(e)  # Log full exception with stack trace in debug mode
+            else:
+                logger.error(e.args if hasattr(e, 'args') else e)  # Log only the error message in non-debug mode
             return 1
 
 
