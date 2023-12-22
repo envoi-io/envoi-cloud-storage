@@ -152,28 +152,31 @@ class EnvoiCommand:
             self.run()
 
     @classmethod
-    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
-        if sub_parsers is None:
-            parser = argparse.ArgumentParser(description=cls.DESCRIPTION, parents=parent_parsers or [])
+    def init_parser(cls, command_name=None, parent_parsers=None, subparsers=None,
+                    formatter_class=argparse.ArgumentDefaultsHelpFormatter):
+        if subparsers is None:
+            parser = EnvoiArgumentParser(description=cls.DESCRIPTION, parents=parent_parsers or [],
+                                         formatter_class=formatter_class)
         else:
-            parser = sub_parsers.add_parser(command_name or cls.__name__.lower(), help=cls.DESCRIPTION,
-                                            parents=parent_parsers or [])
+            parser = subparsers.add_parser(command_name or cls.__name__.lower(), help=cls.DESCRIPTION,
+                                           parents=parent_parsers or [],
+                                           formatter_class=formatter_class)
         parser.set_defaults(handler=cls)
         return parser
 
     @classmethod
-    def process_sub_commands(cls, parser, parent_parsers, sub_commands, dest=None):
-        sub_command_parsers = {}
-        sub_parsers = parser.add_subparsers(dest=dest)
+    def process_subcommands(cls, parser, parent_parsers, subcommands, dest=None):
+        subcommand_parsers = {}
+        subparsers = parser.add_subparsers(dest=dest)
 
-        for sub_command_name, sub_command_handler in sub_commands.items():
-            if sub_command_handler is None:
+        for subcommand_name, subcommand_handler in subcommands.items():
+            if subcommand_handler is None:
                 continue
-            sub_command_parser = sub_command_handler.init_parser(command_name=sub_command_name,
-                                                                 parent_parsers=parent_parsers,
-                                                                 sub_parsers=sub_parsers)
-            sub_command_parser.required = True
-            sub_command_parsers[sub_command_name] = sub_command_parser
+            subcommand_parser = subcommand_handler.init_parser(command_name=subcommand_name,
+                                                               parent_parsers=parent_parsers,
+                                                               subparsers=subparsers)
+            subcommand_parser.required = True
+            subcommand_parsers[subcommand_name] = subcommand_parser
 
         return parser
 
@@ -181,7 +184,11 @@ class EnvoiCommand:
         pass
 
 
-class EnvoiStorageWekaCommand(EnvoiCommand):
+class EnvoiStorageHammerspaceCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
 
     def __init__(self, opts=None, auto_exec=True):
         super().__init__(opts, auto_exec)
@@ -208,6 +215,27 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
     @classmethod
     def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
         parser = super().init_parser(command_name, parent_parsers, sub_parsers)
+class EnvoiStorageWekaCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        subcommands = {
+            'aws': EnvoiStorageWekaAwsCommand,
+        }
+
+        if subcommands is not None:
+            cls.process_subcommands(parser, parent_parsers, subcommands, dest='weka_aws_command')
+
+        return parser
+
+
+class EnvoiStorageWekaAwsCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
 
         # Weka CloudFormation Template Generation Arguments
         parser.add_argument('-t', '--token', type=str, required=True, help='Token.')
@@ -327,33 +355,33 @@ class EnvoiStorageWekaAwsCommand(EnvoiCommand):
         return response
 
 
-class EnvoiCommandLineUtility:
+class EnvoiCommandLineUtility(EnvoiCommand):
 
     @classmethod
-    def parse_command_line(cls, cli_args, env_vars, sub_commands=None):
-        parent_parser = argparse.ArgumentParser(add_help=False)
+    def parse_command_line(cls, cli_args, env_vars, subcommands=None):
+        parent_parser = EnvoiArgumentParser(add_help=False)
         parent_parser.add_argument("--log-level", dest="log_level", default="WARNING",
                                    help="Set the logging level (options: DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 
         # main parser
-        parser = argparse.ArgumentParser(description='Envoi Storage Command Line Utility', parents=[parent_parser])
+        parser = EnvoiArgumentParser(description='Envoi Storage Command Line Utility', parents=[parent_parser])
 
-        if sub_commands is not None:
-            sub_command_parsers = {}
-            sub_parsers = parser.add_subparsers(dest='command')
-            sub_parsers.required = True
+        if subcommands is not None:
+            subcommand_parsers = {}
+            subparsers = parser.add_subparsers(dest='command')
+            subparsers.required = True
 
-            for sub_command_name, sub_command_handler in sub_commands.items():
-                if sub_command_handler is None:
+            for subcommand_name, subcommand_handler in subcommands.items():
+                if subcommand_handler is None:
                     continue
-                sub_command_parser = sub_command_handler.init_parser(command_name=sub_command_name,
-                                                                     parent_parsers=[parent_parser],
-                                                                     sub_parsers=sub_parsers)
-                sub_command_parser.required = True
-                sub_command_parsers[sub_command_name] = sub_command_parser
+                subcommand_parser = subcommand_handler.init_parser(command_name=subcommand_name,
+                                                                   parent_parsers=[parent_parser],
+                                                                   subparsers=subparsers)
+                subcommand_parser.required = True
+                subcommand_parsers[subcommand_name] = subcommand_parser
 
-        (opts, args) = parser.parse_known_args(cli_args)
-        return opts, args, env_vars, parser
+        (opts, unknown_args) = parser.parse_known_args(cli_args)
+        return opts, unknown_args, env_vars, parser
 
     @classmethod
     def handle_cli_execution(cls):
@@ -371,7 +399,7 @@ class EnvoiCommandLineUtility:
             "weka": EnvoiStorageWekaCommand,
         }
 
-        opts, _unhandled_args, env_vars, parser = cls.parse_command_line(cli_args, env_vars, sub_commands)
+        opts, _unhandled_args, env_vars, parser = cls.parse_command_line(cli_args, env_vars, subcommands)
 
         ch = logging.StreamHandler()
         ch.setLevel(opts.log_level.upper())
