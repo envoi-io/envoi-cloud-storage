@@ -339,7 +339,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
                             help="Qumulo cluster instance type")
         parser.add_argument("--key-pair-name", default="qumulo-dev",
                             help="Qumulo cluster key pair name")
-        parser.add_argument("--vpcd-id", default="qumulo-dev-vpc-id",
+        parser.add_argument("--vpc-id", default="qumulo-dev-vpc-id",
                             help="Qumulo cluster VPC ID")
         parser.add_argument("--security-group-cidr", default="0.0.0.0/0",
                             help="Qumulo cluster security group CIDR")
