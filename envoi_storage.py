@@ -190,31 +190,138 @@ class EnvoiStorageHammerspaceCommand(EnvoiCommand):
     def init_parser(cls, parent_parsers=None, **kwargs):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
 
-    def __init__(self, opts=None, auto_exec=True):
-        super().__init__(opts, auto_exec)
-
-    @classmethod
-    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
-        parser = super().init_parser(command_name, parent_parsers, sub_parsers)
-
-        sub_commands = {
-            'aws': EnvoiStorageWekaAwsCommand,
+        subcommands = {
+            'aws': EnvoiStorageHammerspaceAwsCommand,
         }
 
-        if sub_commands is not None:
-            cls.process_sub_commands(parser, parent_parsers, sub_commands, dest='weka_aws_command')
+        if subcommands is not None:
+            cls.process_subcommands(parser, parent_parsers, subcommands, dest='hammerspace_command')
 
         return parser
 
-    def run(self, opts=None):
-        pass
 
-
-class EnvoiStorageWekaAwsCommand(EnvoiCommand):
+class EnvoiStorageHammerspaceAwsCommand(EnvoiCommand):
 
     @classmethod
-    def init_parser(cls, command_name=None, parent_parsers=None, sub_parsers=None):
-        parser = super().init_parser(command_name, parent_parsers, sub_parsers)
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        subcommands = {
+            'create-cluster': EnvoiStorageHammerspaceAwsCreateClusterCommand,
+        }
+
+        if subcommands is not None:
+            cls.process_subcommands(parser, parent_parsers, subcommands, dest='hammerspace_aws_command')
+
+        return parser
+
+
+class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, **kwargs):
+        parser = super().init_parser(kwargs)
+
+        """Instantiates an argument parser with the given parameters."""
+
+        # Required positional argument
+        parser.add_argument("deployment-type", choices=["add", "new"],
+                            help="Deployment type: add or new")
+
+        # Optional arguments
+        parser.add_argument("--anvil-configuration", choices=["standalone", "cluster"],
+                            default="standalone",
+                            help="Anvil configuration: standalone or cluster")
+        parser.add_argument("--anvil-ip-address", default="0.0.0.0",
+                            help="Anvil IP address")
+        parser.add_argument("--anvil-instance-type", default="m5.2xlarge",
+                            help="Anvil instance type")
+        parser.add_argument("--anvil-instance-disk-size", type=int, default=2000,
+                            help="Anvil instance disk size (GB)")
+        parser.add_argument("--dsx-node-instance-type", default="c5.24xlarge",
+                            help="DSX node instance type")
+        parser.add_argument("--dsx-node-instance-count", type=int, default=8,
+                            help="DSX node instance count")
+        parser.add_argument("--dsx-node-instance-disk-size", type=int, default=16384,
+                            help="DSX node instance disk size (GB)")
+        parser.add_argument("--dsx-node-instance-add-volumes", choices=["yes", "no"], default="yes",
+                            help="Add volumes to DSX nodes")
+        parser.add_argument("--cluster-vpc-id", required=False,
+                            help="Cluster VPC ID")
+        parser.add_argument("--cluster-availability-zone", required=False,
+                            help="Cluster availability zone")
+        parser.add_argument("--cluster-security-group-cidr", default="0.0.0.0/0",
+                            help="Cluster security group CIDR")
+        parser.add_argument("--cluster-iam-instance-profile", required=False,
+                            help="Cluster IAM instance profile")
+        parser.add_argument("--cluster-key-pair-name", required=False,
+                            help="Cluster key pair name")
+        parser.add_argument("--cluster-enable-iam-user-access", choices=["yes", "no"], default="no",
+                            help="Enable IAM user access to the cluster")
+        parser.add_argument("--cluster-enable-iam-user-group-id",
+                            help="IAM user group ID to enable access for")
+        parser.add_argument("--iam-instance-role-name")
+
+        return parser
+
+
+class EnvoiStorageQumuloCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        subcommands = {
+            'aws': EnvoiStorageQumuloAwsCommand,
+        }
+
+        if subcommands is not None:
+            cls.process_subcommands(parser, parent_parsers, subcommands, dest='qumulo_command')
+
+        return parser
+
+
+class EnvoiStorageQumuloAwsCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        subcommands = {
+            'create-cluster': EnvoiStorageQumuloAwsCreateClusterCommand,
+        }
+
+        if subcommands is not None:
+            cls.process_subcommands(parser, parent_parsers, subcommands, dest='qumulo_aws_command')
+
+        return parser
+
+
+class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+
+        parser.add_argument("--name", help="Qumulo cluster name")
+
+        # Optional arguments
+        parser.add_argument("--iam-instance-profile", default="qumulo-iam-instance-role-name",
+                            help="IAM instance profile name")
+        parser.add_argument("--instance-type", default="c7gn.8xlarge",
+                            help="Qumulo cluster instance type")
+        parser.add_argument("--key-pair-name", default="qumulo-dev",
+                            help="Qumulo cluster key pair name")
+        parser.add_argument("--vpcd-id", default="qumulo-dev-vpc-id",
+                            help="Qumulo cluster VPC ID")
+        parser.add_argument("--security-group-cidr", default="0.0.0.0/0",
+                            help="Qumulo cluster security group CIDR")
+        parser.add_argument("--kms-key", default="qumulo-dev-key",
+                            help="Qumulo cluster KMS key")
+
+        return parser
+
+
 class EnvoiStorageWekaCommand(EnvoiCommand):
 
     @classmethod
@@ -393,9 +500,9 @@ class EnvoiCommandLineUtility(EnvoiCommand):
         cli_args = sys.argv[1:]
         env_vars = os.environ.copy()
 
-        sub_commands = {
-            "hammerspace": None,
-            "queue": None,
+        subcommands = {
+            "hammerspace": EnvoiStorageHammerspaceCommand,
+            "qumulo": EnvoiStorageQumuloCommand,
             "weka": EnvoiStorageWekaCommand,
         }
 
