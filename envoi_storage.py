@@ -237,7 +237,7 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
     @classmethod
     def init_parser(cls, **kwargs):
-        parser = super().init_parser(kwargs)
+        parser = super().init_parser(**kwargs)
 
         """Instantiates an argument parser with the given parameters."""
 
