@@ -241,11 +241,23 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
         """Instantiates an argument parser with the given parameters."""
 
-        # Required positional argument
-        parser.add_argument("deployment-type", choices=["add", "new"],
-                            help="Deployment type: add or new")
+        # CloudFormation Specific Arguments
+        parser.add_argument("--template-url",
+                            default="https://s3-external-1.amazonaws.com/cf-templates-waavb54hs3ff-us-east-1"
+                                    "/2023356joQ-template12fq1v0pwupd",
+                            help="Template URL")
+        parser.add_argument('--stack-name', type=str, default="Hammerspace",
+                            help='Stack name.')
+        parser.add_argument('--aws-region', type=str, required=False,
+                            help='AWS region.')
+        parser.add_argument('--aws-profile', type=str, required=False,
+                            help='AWS profile.')
+        parser.add_argument("--cfn-role-arn",
+                            type=str,
+                            required=False,
+                            help="The ARN for the IAM role to use for creating the stack")
 
-        # Optional arguments
+        # CloudFormation Template Parameter Arguments
         parser.add_argument("--anvil-configuration", choices=["standalone", "cluster"],
                             default="standalone",
                             help="Anvil configuration: standalone or cluster")
@@ -255,6 +267,8 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
                             help="Anvil instance type")
         parser.add_argument("--anvil-instance-disk-size", type=int, default=2000,
                             help="Anvil instance disk size (GB)")
+        parser.add_argument("deployment-type", choices=["add", "new"],
+                            help="Deployment type: add or new")
         parser.add_argument("--dsx-node-instance-type", default="c5.24xlarge",
                             help="DSX node instance type")
         parser.add_argument("--dsx-node-instance-count", type=int, default=8,
