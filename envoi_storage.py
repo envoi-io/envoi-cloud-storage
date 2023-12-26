@@ -380,22 +380,26 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
     @classmethod
     def init_parser(cls, parent_parsers=None, **kwargs):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+        parser.add_argument('--template-url', type=str, required=True,
+                            help='The URL to the CLoudFormation template')
 
-        parser.add_argument("--name", help="Qumulo cluster name")
+        parser.add_argument("--cluster-name", type=str, require=True, help="Qumulo Cluster Name")
+        parser.add_argument("--key-pair-name", require=True,
+                            help="Name of an existing EC2 KeyPair to enable SSH access to the node")
+        parser.add_argument("--vpc-id", require=True,
+                            help="Qumulo cluster VPC ID")
+        parser.add_argument("--subnet-id", type=str, require=True, help="Subnet ID")
 
         # Optional arguments
-        parser.add_argument("--iam-instance-profile", default="qumulo-iam-instance-role-name",
-                            help="IAM instance profile name")
+        parser.add_argument("--iam-instance-profile-name", default="",
+                            help="The name (*not* the ARN) of the IAM instance profile to be "
+                                 "assigned to each instance in the cluster.")
         parser.add_argument("--instance-type", default="c7gn.8xlarge",
-                            help="Qumulo cluster instance type")
-        parser.add_argument("--key-pair-name", default="qumulo-dev",
-                            help="Qumulo cluster key pair name")
-        parser.add_argument("--vpc-id", default="qumulo-dev-vpc-id",
-                            help="Qumulo cluster VPC ID")
+                            help="EC2 instance type for Qumulo node")
         parser.add_argument("--security-group-cidr", default="0.0.0.0/0",
-                            help="Qumulo cluster security group CIDR")
-        parser.add_argument("--kms-key", default="qumulo-dev-key",
-                            help="Qumulo cluster KMS key")
+                            help="Security group CIDR")
+        parser.add_argument("--volumes-encryption-key", type=str, default="",
+                            help="Encryption Key for the Volumes")
 
         return parser
 
