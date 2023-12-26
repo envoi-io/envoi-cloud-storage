@@ -464,14 +464,6 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
 
     @classmethod
     def create_stack(cls, opts, template_url=None):
-        cfn_client_args = {}
-        if opts.aws_profile is not None:
-            cfn_client_args['profile_name'] = opts.aws_profile
-
-        if opts.aws_region is not None:
-            cfn_client_args['region_name'] = opts.aws_region
-
-        client = boto3.client('cloudformation', **cfn_client_args)
         template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
 
         template_parameters_to_check = {
@@ -481,11 +473,10 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
             'template_param_vpc_id': 'VpcId',
         }
 
-        for opts_param_name, template_param_name in template_parameters_to_check.items():
-            if hasattr(opts, opts_param_name):
-                value = getattr(opts, opts_param_name)
-                if value is not None:
-                    template_parameters.append({'ParameterKey': template_param_name, 'ParameterValue': value})
+        template_parameters = AwsCloudFormationHelper.populate_template_parameters_from_opts(
+            template_parameters=template_parameters,
+            opts=opts,
+            field_map=template_parameters_to_check)
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
@@ -501,6 +492,8 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
 
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
+
+        client = AwsCloudFormationHelper.client_from_opts(opts=opts)
 
         response = client.create_stack(**cfn_create_stack_args)
         return response
