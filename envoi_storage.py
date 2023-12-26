@@ -403,6 +403,50 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
         return parser
 
+    def run(self, opts=None):
+        cfn_client_args = {}
+        if opts.aws_profile is not None:
+            cfn_client_args['profile_name'] = opts.aws_profile
+
+        if opts.aws_region is not None:
+            cfn_client_args['region_name'] = opts.aws_region
+
+        client = boto3.client('cloudformation', **cfn_client_args)
+        template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
+
+        template_parameters_to_check = {
+            'cluster_name': 'ClusterName',
+            'iam_instance_profile': 'IamInstanceProfile',
+            'instance_type': 'InstanceType',
+            'key_pair_name': 'KeyName',
+            'vpc_id': 'VpcId',
+            'subnet_id': 'SubnetId',
+            'security_group_cidr': 'SgCidr',
+            'volumes_encryption_key': 'VolumesEncryptionKey',
+        }
+
+        for opts_param_name, template_param_name in template_parameters_to_check.items():
+            if hasattr(opts, opts_param_name):
+                value = getattr(opts, opts_param_name)
+                if value is not None:
+                    template_parameters.append({'ParameterKey': template_param_name, 'ParameterValue': value})
+
+        cfn_create_stack_args = {
+            'StackName': opts.stack_name,
+            'Parameters': template_parameters
+        }
+
+        if hasattr(opts, 'template_url'):
+            cfn_create_stack_args['TemplateURL'] = opts.template_url
+        else:
+            raise ValueError("Missing required parameter template_url")
+
+        if opts.cfn_role_arn is not None:
+            cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
+
+        response = client.create_stack(**cfn_create_stack_args)
+        return response
+
 
 class EnvoiStorageQumuloAwsCommand(EnvoiCommand):
     subcommands = {
