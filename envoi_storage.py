@@ -67,7 +67,7 @@ class AwsCloudFormationHelper:
 
     @classmethod
     def populate_template_parameters_from_opts(cls, template_parameters, opts, field_map):
-        for opts_param_name, template_param_name in field_map:
+        for opts_param_name, template_param_name in field_map.items():
             value = getattr(opts, opts_param_name, None)
             if value is not None:
                 template_parameters.append({
