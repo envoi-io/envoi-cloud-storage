@@ -2,6 +2,10 @@
 
 ## Installation
 
+### Prerequisites
+
+You will need to install and configure the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)  
+
 ## Usage
 
 ### Hammerspace
@@ -30,30 +34,15 @@ envoi-storage hammerspace aws create-cluster \
 --hammerspce-cluster-enable-iam-user-group-id [iam--admin-group-id]
 ```
 
-
 ### Weka
 
 #### AWS
 
-##### Create Template
-
-Example using only required arguments
-```shell
-envoi-storage weka aws create-template \
---token {WEKA_API_TOKEN}
-```
-
-Example with backend and client instance arguments
-```shell
-envoi-storage weka aws create-template \
---token {WEKA_API_TOKEN} \
---backend-instance-type i3en.2xlarge \
---backend-instance-count 10 \
---client-instance-type r3.xlarge \
---client-instance-count 2
-```
-
 ##### Create Template and Stack
+
+This command creates a CloudFormation template dynamically and then uses that template
+to launch a stack in AWS. You can alternatively use the create-template and create-stack 
+sub commands to support advanced use cases.
 
 Example using only required arguments
 ```shell
@@ -64,6 +53,18 @@ Example using only required arguments
 --template-param-vpc-id VPC_ID
 ```
 
+Example changing the number and type of instances
+```shell
+./envoi_storage.py weka aws create-template-and-stack \
+--token WEKA_API_TOKEN \
+--template-param-key-name KEY_NAME \
+--template-param-subnet-id SUBNET_ID \
+--template-param-vpc-id VPC_ID \
+--backend-instance-type i3en.2xlarge \
+--backend-instance-count 10 \
+--client-instance-type r3.xlarge \
+--client-instance-count 2
+```
 
 ### Qumulo
 
@@ -81,4 +82,3 @@ envoi-storage qumulo aws create-cluster \
 --qumulo-cluster-security-group-cidr 0.0.0.0/0 \
 --qumulo-cluster-kms-key qumulo-dev-key
 ```
-
