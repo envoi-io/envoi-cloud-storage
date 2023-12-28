@@ -354,6 +354,7 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
             'StackName': opts.stack_name,
             'Parameters': template_parameters,
             'TemplateURL': cfn_template_url,
+            'Capabilities': ['CAPABILITY_IAM']
         }
 
         if opts.cfn_role_arn is not None:
