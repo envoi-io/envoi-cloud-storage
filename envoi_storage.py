@@ -488,11 +488,13 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
         parser.add_argument('--stack-name', type=str, default="Weka",
                             help='Stack name.')
         parser.add_argument('--aws-region', type=str, required=False,
-                            help='AWS region.')
+                            default=argparse.SUPPRESS,
+                            help='AWS region. (defaults to the value from the AWS_DEFAULT_REGION environment variable)')
         parser.add_argument('--aws-profile', type=str, required=False,
-                            help='AWS profile.')
+                            default=argparse.SUPPRESS,
+                            help='AWS profile. (defaults to the value from the AWS_PROFILE environment variable)')
         parser.add_argument('--cfn-role-arn', type=str, required=False,
-                            help='IAM Role to use when creating the stack')
+                            help='IAM Role to use when creating the CloudFormation stack')
         return parser
 
     @classmethod
