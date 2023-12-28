@@ -20,6 +20,12 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 
+class CustomFormatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+
+    def _split_lines(self, text, width):
+        return text.splitlines()
+
+
 class AwsCloudFormationHelper:
 
     @classmethod
@@ -208,7 +214,7 @@ class EnvoiCommand:
 
     @classmethod
     def init_parser(cls, command_name=None, parent_parsers=None, subparsers=None,
-                    formatter_class=argparse.ArgumentDefaultsHelpFormatter):
+                    formatter_class=CustomFormatter):
         if subparsers is None:
             parser = EnvoiArgumentParser(description=cls.description, parents=parent_parsers or [],
                                          formatter_class=formatter_class)
