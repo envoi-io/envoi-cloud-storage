@@ -496,20 +496,50 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
     @classmethod
     def add_template_param_arguments(cls, parser, required_params_required=True):
         # CloudFormation Template Parameter Arguments
-        parser.add_argument('--template-param-admin-password', type=str, required=required_params_required,
-                            help='Password for first "admin" user created in the cluster '
-                                 '(default: "admin")'
-                                 'Non-default password must contain at least 8 characters, with at least one '
-                                 'uppercase letter, one lowercase letter, and one number or special character')
+
+        # required template parameters
         parser.add_argument('--template-param-key-name', type=str, required=required_params_required,
-                            help='[Required when creating the stack] '
-                                 'Subnet ID of the subnet in which the cluster would be installed')
+                            default=argparse.SUPPRESS,
+                            help='Subnet ID of the subnet in which the cluster will be installed. ')
         parser.add_argument('--template-param-subnet-id', type=str, required=required_params_required,
-                            help='[Required when creating the stack] '
-                                 'A key with which you can connect to the new instances')
+                            default=argparse.SUPPRESS,
+                            help='A key with which you can connect to the new instances. ')
         parser.add_argument('--template-param-vpc-id', type=str, required=required_params_required,
-                            help='[Required when creating the stack] '
-                                 'VPC ID of the VPC in which the cluster would be installed')
+                            default=argparse.SUPPRESS,
+                            help='VPC ID of the VPC in which the cluster will be installed. ')
+        
+        # optional template parameters
+        parser.add_argument('--template-param-admin-password', type=str, default=argparse.SUPPRESS,
+                            help='Password for first "admin" user created in the cluster (default: "admin")'
+                                 "\nNon-default password must contain at least 8 characters, with at least one "
+                                 'uppercase letter, one lowercase letter, and one number or special character')
+        parser.add_argument('--template-param-existing-s3-bucket-name', type=str, required=False,
+                            help='Existing S3 bucket to attach to the filesystem created by the template.'
+                                 '\nThe bucket has to be in the same region where the cluster is deployed. '
+                                 '\nIf this parameter is provided, the New S3 Bucket parameter is ignored.')
+        parser.add_argument('--template-param-network-topology', type=str, required=False,
+                            help='If you are deploying in a private VPC without public access to the '
+                                 'internet (not using NAT),'
+                                 '\nyou can use either a custom proxy or a Weka VPC endpoint to access Weka services.'
+                                 '\nIf you have not already created a VPC endpoint to Weka services or an S3 Gateway '
+                                 'within this VPC,'
+                                 '\nfollow the link to create one: '
+                                 'https://us-east-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1'
+                                 '#/stacks/create/review?templateURL=https://proxy-prerequisites.s3.eu-central-1'
+                                 '.amazonaws.com/prerequisites.json&stackName=proxy-prerequisites')
+        parser.add_argument('--template-param-new-s3-bucket-name', type=str, required=False,
+                            help='New S3 bucket to create and attach to the filesystem created by the '
+                                 'template. The bucket will not be deleted when the stack is destroyed.')
+        parser.add_argument('--template-param-tiering-ssd-percent', type=str, required=False,
+                            help='Existing S3 bucket to attach to the filesystem created by the template. '
+                                 '\nThe bucket has to be in the same region where the cluster is deployed.' 
+                                 '\nIf this parameter is provided, the New S3 Bucket parameter is ignored.')
+        parser.add_argument('--template-param-weka-volume-type', type=str, required=False,
+                            help='Volume type for the Weka partition.\nGP3 is not yet available in all zones/regions '
+                                 '(e.g., not available in local zones).'
+                                 '\nIn such a case, you must select the GP2 volume type. '
+                                 '\nWhen available, using GP3 is preferred.')
+
         return parser
 
     @classmethod
@@ -517,10 +547,17 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
         template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
 
         template_parameters_to_check = {
-            'template_param_admin_password': 'AdminPassword',
+            # Required
             'template_param_key_name': 'KeyName',
             'template_param_subnet_id': 'SubnetId',
             'template_param_vpc_id': 'VpcId',
+
+            # Optional
+            'template_param_admin_password': 'AdminPassword',
+            'template_param_existing_s3_bucket_name': 'ExistingS3BucketName',
+            'template_param_network_topology': 'NetworkTopology',
+            'template_param_new_s3_bucket_name': 'NewS3BucketName',
+            'template_param_tiering_ssd_percent': 'TieringSsdPercent'
         }
 
         template_parameters = AwsCloudFormationHelper.populate_template_parameters_from_opts(
@@ -530,7 +567,8 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
-            'Parameters': template_parameters
+            'Parameters': template_parameters,
+            'Capabilities': ['CAPABILITY_IAM']
         }
 
         if template_url is not None:
@@ -566,7 +604,8 @@ class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
         parser = super().init_parser(**kwargs)
 
         # Weka CloudFormation Template Generation Arguments
-        parser.add_argument('--token', type=str, required=True, help='API Token.')
+        parser.add_argument('--token', type=str, required=True, default=argparse.SUPPRESS,
+                            help='API Token.')
 
         return cls.add_uniq_arguments(parser)
 
@@ -626,8 +665,8 @@ class EnvoiStorageWekaAwsCreateTemplateAndStackCommand(EnvoiCommand):
         parser.add_argument('--token', type=str, required=True, help='API Token.')
         parser = EnvoiStorageWekaAwsGenerateTemplateCommand.add_uniq_arguments(parser)
 
-        parser.add_argument('--create-stack', action='store', default=False,
-                            help='Triggers the Creation of the stack.')
+        parser.add_argument('--create-stack', action='store', default=True,
+                            help='Triggers the Creation of the CloudFormation stack.')
         parser = EnvoiStorageWekaAwsCreateStackCommand.add_uniq_arguments(parser)
         parser = EnvoiStorageWekaAwsCreateStackCommand.add_template_param_arguments(parser,
                                                                                     required_params_required=False)
