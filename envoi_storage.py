@@ -383,12 +383,12 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument('--template-url', type=str, required=True,
                             help='The URL to the CLoudFormation template')
 
-        parser.add_argument("--cluster-name", type=str, require=True, help="Qumulo Cluster Name")
-        parser.add_argument("--key-pair-name", require=True,
+        parser.add_argument("--cluster-name", type=str, required=True, help="Qumulo Cluster Name")
+        parser.add_argument("--key-pair-name", required=True,
                             help="Name of an existing EC2 KeyPair to enable SSH access to the node")
-        parser.add_argument("--vpc-id", require=True,
+        parser.add_argument("--vpc-id", required=True,
                             help="Qumulo cluster VPC ID")
-        parser.add_argument("--subnet-id", type=str, require=True, help="Subnet ID")
+        parser.add_argument("--subnet-id", type=str, required=True, help="Subnet ID")
 
         # Optional arguments
         parser.add_argument("--iam-instance-profile-name", default="",
