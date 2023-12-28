@@ -528,7 +528,7 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
                                  '\nIf you have not already created a VPC endpoint to Weka services or an S3 Gateway '
                                  'within this VPC,'
                                  '\nfollow the link to create one: '
-                                 'https://us-east-1.console.aws.amazon.com/cloudformation/home?region=eu-west-1'
+                                 'https://console.aws.amazon.com/cloudformation/home'
                                  '#/stacks/create/review?templateURL=https://proxy-prerequisites.s3.eu-central-1'
                                  '.amazonaws.com/prerequisites.json&stackName=proxy-prerequisites')
         parser.add_argument('--template-param-new-s3-bucket-name', type=str, required=False,
