@@ -690,7 +690,11 @@ class EnvoiStorageWekaAwsCreateTemplateAndStackCommand(EnvoiCommand):
             response = generate_cloudformation_template_response
 
         try:
-            response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
+            response_as_string = str(response)
+            if response_as_string.startswith("{") and response_as_string.endswith("}"):
+                response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
+            else:
+                response_to_print = response_as_string
         except TypeError:
             response_to_print = response
         print(response_to_print)
