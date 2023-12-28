@@ -290,13 +290,15 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument('--stack-name', type=str, default="Hammerspace",
                             help='Stack name.')
         parser.add_argument('--aws-region', type=str, required=False,
-                            help='AWS region.')
+                            default=argparse.SUPPRESS,
+                            help='AWS region. (defaults to the value from the AWS_DEFAULT_REGION environment variable)')
         parser.add_argument('--aws-profile', type=str, required=False,
-                            help='AWS profile.')
+                            default=argparse.SUPPRESS,
+                            help='AWS profile. (defaults to the value from the AWS_PROFILE environment variable)')
         parser.add_argument("--cfn-role-arn",
                             type=str,
                             required=False,
-                            help="The ARN for the IAM role to use for creating the stack")
+                            help="The ARN for the IAM role to use for creating the CloudFormation stack")
 
         # CloudFormation Template Parameter Arguments
         parser.add_argument("--anvil-configuration", choices=["standalone", "cluster"],
