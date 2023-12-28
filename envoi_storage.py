@@ -17,7 +17,7 @@ except ImportError:
         print("Missing dependency boto3. Try running 'pip install boto3'")
         sys.exit(1)
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class CustomFormatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -131,7 +131,7 @@ class WekaApiClient:
             else:
                 return response_body
         except json.JSONDecodeError as e:
-            logger.error(f"Error decoding response: {e}")
+            LOG.error(f"Error decoding response: {e}")
             return response_body
 
     def get(self, endpoint, query_params=None, headers=None, default_headers=None):
@@ -765,7 +765,7 @@ class EnvoiCommandLineUtility(EnvoiCommand):
 
         ch = logging.StreamHandler()
         ch.setLevel(opts.log_level.upper())
-        logger.addHandler(ch)
+        LOG.addHandler(ch)
 
         try:
             # If 'handler' is in args, run the correct handler
@@ -777,10 +777,10 @@ class EnvoiCommandLineUtility(EnvoiCommand):
 
             return 0
         except Exception as e:
-            if logger.isEnabledFor(logging.DEBUG):
-                logger.exception(e)  # Log full exception with stack trace in debug mode
+            if LOG.isEnabledFor(logging.DEBUG):
+                LOG.exception(e)  # Log full exception with stack trace in debug mode
             else:
-                logger.error(e.args if hasattr(e, 'args') else e)  # Log only the error message in non-debug mode
+                LOG.error(e.args if hasattr(e, 'args') else e)  # Log only the error message in non-debug mode
             return 1
 
 
