@@ -552,7 +552,12 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
         if opts is None:
             opts = self.opts
 
-        return self.__class__.create_stack(opts=opts, template_url=template_url)
+        response = self.__class__.create_stack(opts=opts, template_url=template_url)
+        stack_id = response['StackId']
+        if stack_id is not None:
+            response = f"Stack ID {stack_id}"
+
+        return response
 
 
 class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
