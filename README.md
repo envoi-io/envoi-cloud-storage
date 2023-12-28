@@ -30,14 +30,38 @@ envoi-storage hammerspace aws create-cluster \
 --hammerspce-cluster-enable-iam-user-group-id [iam--admin-group-id]
 ```
 
-### Qumulo
+
+### Weka
 
 #### AWS
 
-Qumulo
+##### Create Template
 
+Example using only required arguments
 ```shell
-envoi-storage qumulo aws --cluster-name qumulo-dev --iam-instance-profile qumulo-iam-instance-role-name --qumulo-cluster-instance-type c7gn.8xlarge --qumulo-cluster-key-pair-name qumulo-dev --qumulo-cluster-vpcd-id qumulo-dev-vpc-id --qumulo-cluster-security-group-cidr 0.0.0.0/0 --qumulo-cluster-kms-key qumulo-dev-key
+envoi-storage weka aws create-template \
+--token {WEKA_API_TOKEN}
+```
+
+Example with backend and client instance arguments
+```shell
+envoi-storage weka aws create-template \
+--token {WEKA_API_TOKEN} \
+--backend-instance-type i3en.2xlarge \
+--backend-instance-count 10 \
+--client-instance-type r3.xlarge \
+--client-instance-count 2
+```
+
+##### Create Template and Stack
+
+Example using only required arguments
+```shell
+./envoi_storage.py weka aws create-template-and-stack \
+--token WEKA_API_TOKEN \
+--template-param-key-name KEY_NAME \
+--template-param-subnet-id SUBNET_ID \
+--template-param-vpc-id VPC_ID
 ```
 
 ### Hammerspace
