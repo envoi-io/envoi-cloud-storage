@@ -12,37 +12,65 @@ You will need to install and configure the [AWS CLI](https://docs.aws.amazon.com
 
 #### AWS
 
+Set AWS Environment Variable
+
+```shell
+export AWS_DEFAULT_REGION='us-east-1'
+export AWS_AVALIABILITY_ZONE='us-east-1'
+export AWS_PROFILE='AWS_PROFILE'
+export AWS_CLUSTER_IAM_ROLE='AWS_CLUSTER_IAM_ROLE'
+export WEKA_API_TOKEN='WEKA_API_TOKEN'
+export KEY_NAME='KEY_NAME'
+export SUBNET_ID='SUBNET_ID'
+export VPC_ID='VPC_ID'
+```
+
 ##### Create Cluster
 
 ```shell
 envoi-storage hammerspace aws create-cluster \
---hammerspce-deployment-type add | new \
---hammerspce-anvil-configuration standalone | cluster \
---hammerspce-anvil-ip-address 0.0.0.0 \
---hammerspce-anvil-instance-type m5.2xlarge \
---hammerspce-anvil-instance-disk-size 2000 \
---hammerspce-dsxnode-instance-type c5.24xlarge \
---hammerspce-dsxnode-instance-count 8 \
---hammerspce-dsxnode-instance-disk-size 16384 \
---hammerspce-dsxnode-instance-add-volumes yes \
---hammerspce-cluster-vpcd-id hammerspce-dev-vpc-id \
---hammerspce-cluster-availability-zone us-west-2a \
---hammerspce-cluster-security-group-cidr 0.0.0.0/0 \
---hammerspce-cluster-iam-instance-profile hammerspce-iam-instance-role-name \
---hammerspce-cluster-key-pair-name hammerspce-dev \
---hammerspce-cluster-enable-iam-user-access yes | no \
---hammerspce-cluster-enable-iam-user-group-id [iam--admin-group-id]
+--hammerspace-deployment-type add | new \
+--hammerspace-anvil-configuration standalone | cluster \
+--hammerspace-anvil-ip-address 0.0.0.0 \
+--hammerspace-anvil-instance-type m5.2xlarge \
+--hammerspace-anvil-instance-disk-size 2000 \
+--hammerspace-dsxnode-instance-type c5.24xlarge \
+--hammerspace-dsxnode-instance-count 8 \
+--hammerspace-dsxnode-instance-disk-size 16384 \
+--hammerspace-dsxnode-instance-add-volumes yes \
+--hammerspace-cluster-vpcd-id hammerspce-dev-vpc-id \
+--hammerspace-cluster-availability-zone us-west-2a \
+--hammerspace-cluster-security-group-cidr 0.0.0.0/0 \
+--hammerspace-cluster-iam-instance-profile hammerspce-iam-instance-role-name \
+--hammerspace-cluster-key-pair-name hammerspce-dev \
+--hammerspace-cluster-enable-iam-user-access yes | no \
+--hammerspace-cluster-enable-iam-user-group-id [iam--admin-group-id]
 ```
 
 ### Weka
 
 #### AWS
 
-##### Create Template and Stack
+##### Create Weka AWS CloudFormation Template and Lauch CloudFormation Stack
 
-This command creates a CloudFormation template dynamically and then uses that template
-to launch a stack in AWS. You can alternatively use the create-template and create-stack 
-sub commands to support advanced use cases.
+This utility will automatically create a 30TB Weka Filesystem with 7.6GB/S of throughput. 
+
+This is accomplished by leveraging the Weka API for autogenerating AWS CloudFormation 
+
+https://docs.weka.io/install/aws/weka-installation-on-aws-using-the-cloud-formation/cloudformation
+
+Alternatively use the create-template and create-stack sub commands to support advanced use cases.
+
+Set AWS Environment Variable
+
+```shell
+export AWS_DEFAULT_REGION='us-east-1'
+export AWS_PROFILE='AWS_PROFILE'
+export WEKA_API_TOKEN='WEKA_API_TOKEN'
+export KEY_NAME='KEY_NAME'
+export SUBNET_ID='SUBNET_ID'
+export VPC_ID='VPC_ID'
+```
 
 Example using only required arguments
 ```shell
@@ -62,7 +90,7 @@ Example changing the number and type of instances
 --template-param-vpc-id VPC_ID \
 --backend-instance-type i3en.2xlarge \
 --backend-instance-count 10 \
---client-instance-type r3.xlarge \
+--client-instance-type g5.12xlarge \
 --client-instance-count 2
 ```
 
