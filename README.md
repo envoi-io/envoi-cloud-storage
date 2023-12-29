@@ -81,7 +81,7 @@ Example using only required arguments
 --template-param-vpc-id VPC_ID
 ```
 
-Example changing the number and type of instances
+Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere CentOS 7 Linux
 ```shell
 ./envoi_storage.py weka aws create-template-and-stack \
 --token WEKA_API_TOKEN \
@@ -92,6 +92,39 @@ Example changing the number and type of instances
 --backend-instance-count 10 \
 --client-instance-type g5.12xlarge \
 --client-instance-count 2
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
+https://aws.amazon.com/marketplace/pp/prodview-yjdn554yaqvem
+```
+
+
+Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere Windows Server 2019 (NVIDIA) 
+```shell
+./envoi_storage.py weka aws create-template-and-stack \
+--token WEKA_API_TOKEN \
+--template-param-key-name KEY_NAME \
+--template-param-subnet-id SUBNET_ID \
+--template-param-vpc-id VPC_ID \
+--backend-instance-type i3en.2xlarge \
+--backend-instance-count 10 \
+--client-instance-type g5.12xlarge \
+--client-instance-count 2
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
+https://aws.amazon.com/marketplace/pp/prodview-boeg6hiewus3o
+```
+
+Deploy Weka 30TB Filesystem with with 2 clients configured with HP Anywhere HP Anyware Epic Games Unreal Engine 5 on Windows 2022 Server
+```shell
+./envoi_storage.py weka aws create-template-and-stack \
+--token WEKA_API_TOKEN \
+--template-param-key-name KEY_NAME \
+--template-param-subnet-id SUBNET_ID \
+--template-param-vpc-id VPC_ID \
+--backend-instance-type i3en.2xlarge \
+--backend-instance-count 10 \
+--client-instance-type g5.12xlarge \
+--client-instance-count 2
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
+https://aws.amazon.com/marketplace/pp/prodview-fryvjy6m3qn2q
 ```
 
 ### Qumulo
