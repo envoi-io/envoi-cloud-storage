@@ -133,12 +133,7 @@ https://aws.amazon.com/marketplace/pp/prodview-fryvjy6m3qn2q
 ##### Create Cluster
 
 ```shell
-envoi-storage qumulo aws create-cluster \
---cluster-name qumulo-dev \
---iam-instance-profile qumulo-iam-instance-role-name \
---qumulo-cluster-instance-type c7gn.8xlarge \
---qumulo-cluster-key-pair-name qumulo-dev \
---qumulo-cluster-vpcd-id qumulo-dev-vpc-id \
---qumulo-cluster-security-group-cidr 0.0.0.0/0 \
---qumulo-cluster-kms-key qumulo-dev-key
+qumulo aws create-cluster [-h] [--log-level LOG_LEVEL] --template-url TEMPLATE_URL --cluster-name CLUSTER_NAME --key-pair-name KEY_PAIR_NAME --vpc-id VPC_ID
+                                                  --subnet-id SUBNET_ID [--iam-instance-profile-name IAM_INSTANCE_PROFILE_NAME] [--instance-type INSTANCE_TYPE]
+                                                  [--security-group-cidr SECURITY_GROUP_CIDR] [--volumes-encryption-key VOLUMES_ENCRYPTION_KEY]
 ```
