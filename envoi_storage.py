@@ -20,6 +20,13 @@ except ImportError:
 LOG = logging.getLogger(__name__)
 
 
+def add_from_namespace_to_dict_if_not_none(source_obj, source_key, target_obj, target_key):
+    if hasattr(source_obj, source_key):
+        value = getattr(source_obj, source_key)
+        if value is not None:
+            target_obj[target_key] = value
+
+
 class CustomFormatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
 
     def _split_lines(self, text, width):
@@ -36,13 +43,16 @@ class AwsCloudFormationHelper:
         if opts is None:
             opts = SimpleNamespace()
 
-        if opts.aws_profile is not None:
-            cfn_client_args['profile_name'] = opts.aws_profile
+        session_args = {}
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', session_args, 'profile_name')
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
 
-        if opts.aws_region is not None:
-            cfn_client_args['region_name'] = opts.aws_region
+        if len(session_args) != 0:
+            client_parent = boto3.Session(**session_args)
+        else:
+            client_parent = boto3
 
-        return boto3.client('cloudformation', **cfn_client_args)
+        return client_parent.client('cloudformation', **cfn_client_args)
 
     @classmethod
     def create_stack(cls, stack_name, template_url, cfn_role_arn=None, template_parameters=None, client=None,
@@ -384,6 +394,8 @@ class EnvoiStorageHammerspaceCommand(EnvoiCommand):
     }
 
 
+
+
 class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
     @classmethod
@@ -414,11 +426,8 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
     def run(self, opts=None):
         cfn_client_args = {}
-        if opts.aws_profile is not None:
-            cfn_client_args['profile_name'] = opts.aws_profile
-
-        if opts.aws_region is not None:
-            cfn_client_args['region_name'] = opts.aws_region
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', cfn_client_args, 'profile_name')
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
 
         client = boto3.client('cloudformation', **cfn_client_args)
         template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
