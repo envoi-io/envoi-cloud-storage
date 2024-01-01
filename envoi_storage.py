@@ -171,18 +171,18 @@ class WekaApiClient:
         return get_template_releases_response["objects"][0]
 
     def generate_cloudformation_template(self,
-                                         template_version=None,
+                                         weka_version=None,
                                          client_instance_type=None,
                                          client_instance_count=None,
                                          client_ami_id=None,
                                          backend_instance_type=None,
                                          backend_instance_count=None):
         # @see https://docs.weka.io/install/aws/weka-installation-on-aws-using-the-cloud-formation/cloudformation
-        if template_version is None or template_version == 'latest':
+        if weka_version is None or weka_version == 'latest':
             latest_release = self.get_latest_template_release()
-            template_version = latest_release["id"]
+            weka_version = latest_release["id"]
 
-        endpoint = f'aws/cfn/{template_version}'
+        endpoint = f'aws/cfn/{weka_version}'
 
         cluster = []
         if client_instance_count is not None:
@@ -625,8 +625,8 @@ class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
 
     @classmethod
     def add_uniq_arguments(cls, parser):
-        parser.add_argument('--template-version', type=str, default='latest',
-                            help='Template version.')
+        parser.add_argument('--weka-version', type=str, default='latest',
+                            help='Weka version.')
         parser.add_argument('--backend-instance-count', type=int, default=6,
                             help='Backend instance count.')
         parser.add_argument('--backend-instance-type', type=str, default='i3en.2xlarge',
@@ -644,7 +644,7 @@ class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
         client = WekaApiClient(token=opts.token)
 
         generate_cloudformation_template_opts = {
-            "template_version": opts.template_version,
+            "weka_version": opts.weka_version,
             "client_instance_type": opts.client_instance_type,
             "client_instance_count": opts.client_instance_count,
             "backend_instance_type": opts.backend_instance_type,
