@@ -133,7 +133,7 @@ class WekaApiClient:
         header_attribs = dict(map(lambda x: x.strip().split("="), header_attribs_raw.split(",")))
         charset = header_attribs.get("charset", "utf-8")
         try:
-            if content_type == 'text/plain:':
+            if content_type == 'text/plain':
                 return response_body.decode(charset)
             if content_type == "application/json":
                 response_as_string = response_body.decode(charset)
