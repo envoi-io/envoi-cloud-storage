@@ -394,8 +394,6 @@ class EnvoiStorageHammerspaceCommand(EnvoiCommand):
     }
 
 
-
-
 class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
     @classmethod
@@ -521,7 +519,7 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
         parser.add_argument('--template-param-vpc-id', type=str, required=required_params_required,
                             default=argparse.SUPPRESS,
                             help='VPC ID of the VPC in which the cluster will be installed. ')
-        
+
         # optional template parameters
         parser.add_argument('--template-param-admin-password', type=str, default=argparse.SUPPRESS,
                             help='Password for first "admin" user created in the cluster (default: "admin")'
@@ -546,7 +544,7 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
                                  'template. The bucket will not be deleted when the stack is destroyed.')
         parser.add_argument('--template-param-tiering-ssd-percent', type=str, required=False,
                             help='Existing S3 bucket to attach to the filesystem created by the template. '
-                                 '\nThe bucket has to be in the same region where the cluster is deployed.' 
+                                 '\nThe bucket has to be in the same region where the cluster is deployed.'
                                  '\nIf this parameter is provided, the New S3 Bucket parameter is ignored.')
         parser.add_argument('--template-param-weka-volume-type', type=str, required=False,
                             help='Volume type for the Weka partition.\nGP3 is not yet available in all zones/regions '
