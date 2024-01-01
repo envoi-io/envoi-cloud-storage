@@ -399,10 +399,22 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
     @classmethod
     def init_parser(cls, parent_parsers=None, **kwargs):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
-        parser.add_argument('--template-url', type=str, required=True,
-                            help='The URL to the CLoudFormation template')
-
-        parser.add_argument("--cluster-name", type=str, required=True, help="Qumulo Cluster Name")
+        parser.add_argument('--template-url', type=str,
+                            default="https://envoi-prod-files-public.s3.amazonaws.com"
+                                    "/qumulo/cloud-formation/templates/qumulo.cfn-template.json",
+                            help='The URL to the CloudFormation template')
+        parser.add_argument('--stack-name', type=str, default="Qumulo",
+                            help='Stack name.')
+        parser.add_argument('--aws-region', type=str, required=False,
+                            default=argparse.SUPPRESS,
+                            help='AWS region. (defaults to the value from the AWS_DEFAULT_REGION environment variable)')
+        parser.add_argument('--aws-profile', type=str, required=False,
+                            default=argparse.SUPPRESS,
+                            help='AWS profile. (defaults to the value from the AWS_PROFILE environment variable)')
+        parser.add_argument('--cfn-role-arn', type=str, required=False,
+                            help='IAM Role to use when creating the CloudFormation stack')
+        parser.add_argument("--cluster-name", type=str, required=True,
+                            help="Qumulo cluster name (2-15 alpha-numeric characters and -)")
         parser.add_argument("--key-pair-name", required=True,
                             help="Name of an existing EC2 KeyPair to enable SSH access to the node")
         parser.add_argument("--vpc-id", required=True,
@@ -413,7 +425,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument("--iam-instance-profile-name", default="",
                             help="The name (*not* the ARN) of the IAM instance profile to be "
                                  "assigned to each instance in the cluster.")
-        parser.add_argument("--instance-type", default="c7gn.8xlarge",
+        parser.add_argument("--instance-type", default="c5n.xlarge",
                             help="EC2 instance type for Qumulo node")
         parser.add_argument("--security-group-cidr", default="0.0.0.0/0",
                             help="Security group CIDR")
@@ -423,12 +435,14 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         return parser
 
     def run(self, opts=None):
+        if opts is None:
+            opts = self.opts
         cfn_client_args = {}
         add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', cfn_client_args, 'profile_name')
         add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
 
         client = boto3.client('cloudformation', **cfn_client_args)
-        template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
+        template_parameters = []
 
         template_parameters_to_check = {
             'cluster_name': 'ClusterName',
@@ -449,7 +463,8 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
         cfn_create_stack_args = {
             'StackName': opts.stack_name,
-            'Parameters': template_parameters
+            'Parameters': template_parameters,
+            'Capabilities': ['CAPABILITY_IAM']
         }
 
         if hasattr(opts, 'template_url'):
@@ -461,6 +476,10 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
 
         response = client.create_stack(**cfn_create_stack_args)
+        stack_id = response['StackId']
+        if stack_id is not None:
+            response = f"Stack ID {stack_id}"
+
         return response
 
 
