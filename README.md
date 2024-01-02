@@ -8,44 +8,6 @@ You will need to install and configure the [AWS CLI](https://docs.aws.amazon.com
 
 ## Usage
 
-### Hammerspace
-
-#### AWS
-
-Set AWS Environment Variable
-
-```shell
-export AWS_DEFAULT_REGION='us-east-1'
-export AWS_AVALIABILITY_ZONE='us-east-1'
-export AWS_PROFILE='AWS_PROFILE'
-export AWS_CLUSTER_IAM_ROLE='AWS_CLUSTER_IAM_ROLE'
-export KEY_NAME='KEY_NAME'
-export SUBNET_ID='SUBNET_ID'
-export VPC_ID='VPC_ID'
-```
-
-##### Create Cluster
-
-```shell
-envoi-storage hammerspace aws create-cluster \
---hammerspace-deployment-type add | new \
---hammerspace-anvil-configuration standalone | cluster \
---hammerspace-anvil-ip-address 0.0.0.0 \
---hammerspace-anvil-instance-type m5.2xlarge \
---hammerspace-anvil-instance-disk-size 2000 \
---hammerspace-dsxnode-instance-type c5.24xlarge \
---hammerspace-dsxnode-instance-count 8 \
---hammerspace-dsxnode-instance-disk-size 16384 \
---hammerspace-dsxnode-instance-add-volumes yes \
---hammerspace-cluster-vpcd-id hammerspce-dev-vpc-id \
---hammerspace-cluster-availability-zone us-west-2a \
---hammerspace-cluster-security-group-cidr 0.0.0.0/0 \
---hammerspace-cluster-iam-instance-profile hammerspce-iam-instance-role-name \
---hammerspace-cluster-key-pair-name hammerspce-dev \
---hammerspace-cluster-enable-iam-user-access yes | no \
---hammerspace-cluster-enable-iam-user-group-id [iam--admin-group-id]
-```
-
 ### Weka
 
 #### AWS
@@ -78,6 +40,13 @@ Example using only required arguments
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
 --template-param-vpc-id VPC_ID
+--backend-instance-type i3en.6xlarge \
+--backend-instance-count 6 \
+--client-instance-count 2 \
+--stack-name envoi-storage-fs-4 \
+--aws-profile $AWS_PROFILE \
+--aws-region $AWS_DEFAULT_REGION \
+--log-level debug
 ```
 
 Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere CentOS 7 Linux
@@ -86,11 +55,14 @@ Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere CentOS 7 
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID \
---backend-instance-type i3en.2xlarge \
+--template-param-vpc-id VPC_ID
+--backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
---client-instance-type g5.12xlarge \
---client-instance-count 2
+--client-instance-type g4dn.16xlarge \
+--client-instance-count 5 \
+--stack-name envoi-storage-fs-4 \
+--aws-profile $AWS_PROFILE \
+--aws-region $AWS_DEFAULT_REGION \
 --client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
 https://aws.amazon.com/marketplace/pp/prodview-yjdn554yaqvem
 ```
@@ -102,11 +74,14 @@ Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere Windows S
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID \
---backend-instance-type i3en.2xlarge \
+--template-param-vpc-id VPC_ID
+--backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
 --client-instance-type g5.12xlarge \
---client-instance-count 2
+--client-instance-count 5 \
+--stack-name envoi-storage-fs-4 \
+--aws-profile $AWS_PROFILE \
+--aws-region $AWS_DEFAULT_REGION \
 --client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
 https://aws.amazon.com/marketplace/pp/prodview-boeg6hiewus3o
 ```
@@ -117,11 +92,14 @@ Deploy Weka 30TB Filesystem with with 2 clients configured with HP Anywhere HP A
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID \
---backend-instance-type i3en.2xlarge \
+--template-param-vpc-id VPC_ID
+--backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
 --client-instance-type g5.12xlarge \
---client-instance-count 2
+--client-instance-count 5 \
+--stack-name envoi-storage-fs-4 \
+--aws-profile $AWS_PROFILE \
+--aws-region $AWS_DEFAULT_REGION \
 --client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
 https://aws.amazon.com/marketplace/pp/prodview-fryvjy6m3qn2q
 ```
