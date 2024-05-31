@@ -413,6 +413,156 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
                             help='AWS profile. (defaults to the value from the AWS_PROFILE environment variable)')
         parser.add_argument('--cfn-role-arn', type=str, required=False,
                             help='IAM Role to use when creating the CloudFormation stack')
+
+        # AWS Template Configuration - Cloud.Next Existing VPC - Single AZ - Advanced v2.2
+        parser.add_argument("--qs-s3-bucket-name", type=str, required=True,
+                            help="Qumulo software S3 bucket name")
+        parser.add_argument("--qs-s3-key-prefix", type=str, required=True,
+                            help="Qumulo software S3 key prefix")
+        parser.add_argument("--qs-s3-region", type=str, required=True,
+                            help="Qumulo software S3 region")
+        parser.add_argument("--key-pair-name", required=True,
+                            help="Name of an existing EC2 KeyPair to enable SSH access to the node")
+        parser.add_argument("--env-type", type=str, required=True,
+                            help="Environment type")
+
+        # AWS network configuration
+        parser.add_argument("--vpc-id", required=True,
+                            help="Qumulo cluster VPC ID")
+        parser.add_argument("--security-group-cidr-1", default="10.0.0.0/16",
+                            help="Security group CIDR 1")
+        parser.add_argument("--security-group-cidr-2", default="", help="Security group CIDR 2")
+        parser.add_argument("--security-group-cidr-3", default="", help="Security group CIDR 3")
+        parser.add_argument("--security-group-cidr-4", default="", help="Security group CIDR 4")
+        parser.add_argument("--private-subnet-id", type=str, required=True, help="Private subnet ID")
+        parser.add_argument("--q-public-mgmt", default="NO", help="Qumulo public management")
+        parser.add_argument("--q-public-repl", default="NO", help="Qumulo public replication")
+        parser.add_argument("--public-subnet-id", type=str, help="Public subnet ID")
+        parser.add_argument("--q-nlb", default="NO", help="Deploy an AWS network load balancer")
+        parser.add_argument("--q-nlb-private-subnet-ids", type=str,
+                            help="AWS private subnet ID for the network load balancer")
+        parser.add_argument("--domain-name", type=str, help="Domain name for a Route 53 hosted zone")
+        parser.add_argument("--q-float-record-name", type=str,
+                            help="Route 53 record name for Qumulo-cluster floating IP addresses")
+
+        # Qumulo file data platform configuration
+        parser.add_argument("--q-ami-id", type=str, help="Qumulo AMI ID")
+        parser.add_argument("--q-shared-ami", default="NO", help="Qumulo shared AMI")
+        parser.add_argument("--q-debian-package", default="DEB", help="Debian or RPM package")
+        parser.add_argument("--q-persistent-bucket-name", default="auto-create",
+                            help="Qumulo S3 bucket name for persistent storage")
+        parser.add_argument("--q-instance-type", default="m6idn.xlarge", help="Qumulo EC2 instance type")
+        parser.add_argument("--q-node-count", default="4", help="Number of Qumulo EC2 instances")
+        parser.add_argument("--q-disk-config", default="64GiB-Write-Cache", help="Write cache configuration")
+        parser.add_argument("--q-write-cache-type", default="gp3", help="Write cache type")
+        parser.add_argument("--q-write-cache-tput", default="Use Qumulo Default", help="Write cache throughput")
+        parser.add_argument("--q-write-cache-iops", default="Use Qumulo Default", help="Write cache IOPS")
+        parser.add_argument("--q-boot-dkv-type", default="gp3", help="Boot/DKV type")
+        parser.add_argument("--q-cluster-version", default="3.2.0", help="Qumulo software version")
+        parser.add_argument("--q-cluster-name", required=True, help="Qumulo cluster name")
+        parser.add_argument("--q-cluster-admin-pwd", required=True, help="Qumulo cluster administrator password")
+        parser.add_argument("--volumes-encryption-key", type=str, default="", help="EBS volumes encryption key")
+        parser.add_argument("--q-permissions-boundary", default="", help="Qumulo permissions boundary policy name")
+        parser.add_argument("--q-audit-log", default="NO", help="Qumulo audit-log messages to CloudWatch Logs")
+        parser.add_argument("--term-protection", default="NO", help="Termination protection")
+        return parser
+
+    def run(self, opts=None):
+        if opts is None:
+            opts = self.opts
+        cfn_client_args = {}
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', cfn_client_args, 'profile_name')
+        add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
+
+        client = boto3.client('cloudformation', **cfn_client_args)
+        template_parameters = []
+
+        template_parameters_to_check = {
+            'qs_s3_bucket_name': 'QSS3BucketName',
+            'qs_s3_key_prefix': 'QSS3KeyPrefix',
+            'qs_s3_region': 'QSS3BucketRegion',
+            'key_pair_name': 'KeyPair',
+            'env_type': 'EnvType',
+            'vpc_id': 'VpcId',
+            'security_group_cidr_1': 'QSgCidr1',
+            'security_group_cidr_2': 'QSgCidr2',
+            'security_group_cidr_3': 'QSgCidr3',
+            'security_group_cidr_4': 'QSgCidr4',
+            'private_subnet_id': 'PrivateSubnetID',
+            'q_public_mgmt': 'QPublicMgmt',
+            'q_public_repl': 'QPublicRepl',
+            'public_subnet_id': 'PublicSubnetID',
+            'q_nlb': 'QNlb',
+            'q_nlb_private_subnet_ids': 'QNlbPrivateSubnetIDs',
+            'domain_name': 'DomainName',
+            'q_float_record_name': 'QFloatRecordName',
+            'q_ami_id': 'QAmiID',
+            'q_shared_ami': 'QSharedAmi',
+            'q_debian_package': 'QDebianPackage',
+            'q_persistent_bucket_name': 'QPersistentBucketName',
+            'q_instance_type': 'QInstanceType',
+            'q_node_count': 'QNodeCount',
+            'q_disk_config': 'QDiskConfig',
+            'q_write_cache_type': 'QWriteCacheType',
+            'q_write_cache_tput': 'QWriteCacheTput',
+            'q_write_cache_iops': 'QWriteCacheIops',
+            'q_boot_dkv_type': 'QBootDKVType',
+            'q_cluster_version': 'QClusterVersion',
+            'q_cluster_name': 'QClusterName',
+            'q_cluster_admin_pwd': 'QClusterAdminPwd',
+            'volumes_encryption_key': 'VolumesEncryptionKey',
+            'q_permissions_boundary': 'QPermissionsBoundary',
+            'q_audit_log': 'QAuditLog',
+            'term_protection': 'TermProtection',
+        }
+
+        for opts_param_name, template_param_name in template_parameters_to_check.items():
+            if hasattr(opts, opts_param_name):
+                value = getattr(opts, opts_param_name)
+                if value is not None:
+                    template_parameters.append({'ParameterKey': template_param_name, 'ParameterValue': value})
+
+        cfn_create_stack_args = {
+            'StackName': opts.stack_name,
+            'Parameters': template_parameters,
+            'Capabilities': ['CAPABILITY_IAM']
+        }
+
+        if hasattr(opts, 'template_url'):
+            cfn_create_stack_args['TemplateURL'] = opts.template_url
+        else:
+            raise ValueError("Missing required parameter template_url")
+
+        if opts.cfn_role_arn is not None:
+            cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
+
+        response = client.create_stack(**cfn_create_stack_args)
+        stack_id = response['StackId']
+        if stack_id is not None:
+            response = f"Stack ID {stack_id}"
+
+        return response
+
+
+class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
+
+    @classmethod
+    def init_parser(cls, parent_parsers=None, **kwargs):
+        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+        parser.add_argument('--template-url', type=str,
+                            default="https://envoi-prod-files-public.s3.amazonaws.com"
+                                    "/qumulo/cloud-formation/templates/qumulo.cfn-template.json",
+                            help='The URL to the CloudFormation template')
+        parser.add_argument('--stack-name', type=str, default="Qumulo",
+                            help='Stack name.')
+        parser.add_argument('--aws-region', type=str, required=False,
+                            default=argparse.SUPPRESS,
+                            help='AWS region. (defaults to the value from the AWS_DEFAULT_REGION environment variable)')
+        parser.add_argument('--aws-profile', type=str, required=False,
+                            default=argparse.SUPPRESS,
+                            help='AWS profile. (defaults to the value from the AWS_PROFILE environment variable)')
+        parser.add_argument('--cfn-role-arn', type=str, required=False,
+                            help='IAM Role to use when creating the CloudFormation stack')
         parser.add_argument("--cluster-name", type=str, required=True,
                             help="Qumulo cluster name (2-15 alpha-numeric characters and -)")
         parser.add_argument("--key-pair-name", required=True,
