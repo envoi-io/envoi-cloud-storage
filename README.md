@@ -18,7 +18,7 @@ This utility will automatically create a 30TB Weka Filesystem with 7.6GB/S of th
 
 This is accomplished by leveraging the Weka API for autogenerating AWS CloudFormation 
 
-https://docs.weka.io/install/aws/weka-installation-on-aws-using-the-cloud-formation/cloudformation
+[Weka Installation on AWS Using CloudFormation](https://docs.weka.io/planning-and-installation/aws/weka-installation-on-aws-using-the-cloud-formation)
 
 Alternatively use the create-template and create-stack sub commands to support advanced use cases.
 
