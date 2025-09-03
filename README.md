@@ -1,28 +1,32 @@
-# Envoi Storage
+### Envoi Cloud Storage
 
-## Installation
+Envoi Cloud Storage provides a suite of tools for provisioning and managing high-performance file systems on cloud platforms, with a focus on **WekaIO** and **Qumulo** on **Amazon Web Services (AWS)**. These solutions are designed to handle demanding workloads like video editing, VFX, and machine learning by providing high throughput and low latency.
 
-### Prerequisites
+-----
 
-You will need to install and configure the [AWS CLI](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html)  
+### Installation
 
-## Usage
+#### Prerequisites
+
+To use these utilities, you must have the **AWS CLI** installed and configured with appropriate credentials.
+
+-----
+
+### Usage
 
 ### Weka
 
 #### AWS
 
-##### Create Weka AWS CloudFormation Template and Lauch CloudFormation Stack
+##### Create Weka AWS CloudFormation Template and Launch CloudFormation Stack
 
-This utility will automatically create a 30TB Weka Filesystem with 7.6GB/S of throughput. 
+This utility automates the creation of a Weka file system by leveraging the Weka API to generate an AWS CloudFormation template. This simplifies the deployment of a high-performance storage solution. You can choose to deploy a pre-configured 30TB file system with 7.6GB/s of throughput.
 
-This is accomplished by leveraging the Weka API for autogenerating AWS CloudFormation 
+For advanced use cases, you can use the `create-template` and `create-stack` subcommands separately.
 
-[Weka Installation on AWS Using CloudFormation](https://docs.weka.io/planning-and-installation/aws/weka-installation-on-aws-using-the-cloud-formation)
+**Environment Variables**
 
-Alternatively use the create-template and create-stack sub commands to support advanced use cases.
-
-Set AWS Environment Variable
+To run the commands, you'll first need to set the following environment variables:
 
 ```shell
 export AWS_DEFAULT_REGION='us-east-1'
@@ -33,13 +37,16 @@ export SUBNET_ID='SUBNET_ID'
 export VPC_ID='VPC_ID'
 ```
 
-Example using only required arguments
+**Required Arguments Example**
+
+The following command demonstrates the minimum required arguments to create and launch a Weka stack. It provisions a 30TB file system with a backend of `i3en.6xlarge` instances.
+
 ```shell
 ./envoi_storage.py weka aws create-template-and-stack \
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID
+--template-param-vpc-id VPC_ID \
 --backend-instance-type i3en.6xlarge \
 --backend-instance-count 6 \
 --client-instance-count 2 \
@@ -49,13 +56,20 @@ Example using only required arguments
 --log-level debug
 ```
 
-Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere CentOS 7 Linux
+**Deploying a Weka 30TB File System with Specific Clients**
+
+You can also specify the type and number of client instances to be launched along with the Weka file system. This is useful for pre-configuring your virtual desktops for specific creative applications.
+
+**1. HP Anyware CentOS 7 Linux Clients**
+
+This command launches the Weka file system and two client instances with HP Anyware on CentOS 7, using `g4dn.16xlarge` instances which are suitable for GPU-intensive workloads.
+
 ```shell
 ./envoi_storage.py weka aws create-template-and-stack \
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID
+--template-param-vpc-id VPC_ID \
 --backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
 --client-instance-type g4dn.16xlarge \
@@ -63,18 +77,19 @@ Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere CentOS 7 
 --stack-name envoi-storage-fs-4 \
 --aws-profile $AWS_PROFILE \
 --aws-region $AWS_DEFAULT_REGION \
---client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
-https://aws.amazon.com/marketplace/pp/prodview-yjdn554yaqvem
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2"
 ```
 
+**2. HP Anyware Windows Server 2019 (NVIDIA) Clients**
 
-Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere Windows Server 2019 (NVIDIA) 
+This command provisions a Weka file system with client instances running HP Anyware on Windows Server 2019 with NVIDIA GPUs.
+
 ```shell
 ./envoi_storage.py weka aws create-template-and-stack \
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID
+--template-param-vpc-id VPC_ID \
 --backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
 --client-instance-type g5.12xlarge \
@@ -82,17 +97,19 @@ Deploy Weka 30TB Filesystem with 2 clients configured with HP Anywhere Windows S
 --stack-name envoi-storage-fs-4 \
 --aws-profile $AWS_PROFILE \
 --aws-region $AWS_DEFAULT_REGION \
---client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
-https://aws.amazon.com/marketplace/pp/prodview-boeg6hiewus3o
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2"
 ```
 
-Deploy Weka 30TB Filesystem with with 2 clients configured with HP Anywhere HP Anyware Epic Games Unreal Engine 5 on Windows 2022 Server
+**3. HP Anyware Unreal Engine 5 on Windows 2022 Server Clients**
+
+This command deploys the Weka file system and clients optimized for running Unreal Engine 5 on Windows Server 2022.
+
 ```shell
 ./envoi_storage.py weka aws create-template-and-stack \
 --token WEKA_API_TOKEN \
 --template-param-key-name KEY_NAME \
 --template-param-subnet-id SUBNET_ID \
---template-param-vpc-id VPC_ID
+--template-param-vpc-id VPC_ID \
 --backend-instance-type i3en.6xlarge \
 --backend-instance-count 10 \
 --client-instance-type g5.12xlarge \
@@ -100,9 +117,10 @@ Deploy Weka 30TB Filesystem with with 2 clients configured with HP Anywhere HP A
 --stack-name envoi-storage-fs-4 \
 --aws-profile $AWS_PROFILE \
 --aws-region $AWS_DEFAULT_REGION \
---client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2" ##Launches this CentOS 7 g5.12xlarge as a Weka client
-https://aws.amazon.com/marketplace/pp/prodview-fryvjy6m3qn2q
+--client-ami-id "ami-08447c4aa12458688 | us-east-1, ami-08190d20c372f54cc | us-west-1 ami-0805e10141cf4a781 | us-west-2"
 ```
+
+-----
 
 ### Qumulo
 
@@ -110,27 +128,40 @@ https://aws.amazon.com/marketplace/pp/prodview-fryvjy6m3qn2q
 
 ##### Create Cluster
 
+This utility creates a **Cloud Native Qumulo (CNQ)** cluster on AWS using a CloudFormation template. It provides a straightforward way to deploy a scalable, high-performance file storage solution.
+
+**Command-Line Arguments**
+
+  * `--log-level LOG_LEVEL`: Sets the logging level.
+  * `--template-url TEMPLATE_URL`: **(Required)** The URL of the CloudFormation template for the specific cluster configuration.
+  * `--cluster-name CLUSTER_NAME`: **(Required)** The name for the Qumulo cluster.
+  * `--key-pair-name KEY_PAIR_NAME`: **(Required)** The SSH key pair name for instance access.
+  * `--vpc-id VPC_ID`: **(Required)** The ID of the VPC where the cluster will be deployed.
+  * `--subnet-id SUBNET_ID`: **(Required)** The ID of the subnet for the cluster nodes.
+  * `--iam-instance-profile-name IAM_INSTANCE_PROFILE_NAME`: An optional IAM profile name.
+  * `--instance-type INSTANCE_TYPE`: An optional instance type to override the template's default.
+  * `--security-group-cidr SECURITY_GROUP_CIDR`: A CIDR block for security group access.
+  * `--volumes-encryption-key VOLUMES_ENCRYPTION_KEY`: An optional KMS key for volume encryption.
+
+**Setting Environment Variables**
+
 ```shell
-qumulo aws create-cluster [-h] [--log-level LOG_LEVEL] --template-url TEMPLATE_URL --cluster-name CLUSTER_NAME --key-pair-name KEY_PAIR_NAME --vpc-id VPC_ID
-                                                  --subnet-id SUBNET_ID [--iam-instance-profile-name IAM_INSTANCE_PROFILE_NAME] [--instance-type INSTANCE_TYPE]
-                                                  [--security-group-cidr SECURITY_GROUP_CIDR] [--volumes-encryption-key VOLUMES_ENCRYPTION_KEY]
-```
-
-
-```
-
 export AWS_DEFAULT_REGION=us-east-1
 export AWS_PROFILE=
 export KEY_NAME=
 export SUBNET_ID=
 export VPC_ID=
+```
 
+**Creating a Qumulo Cluster**
 
-Create Qumulo Cluster
+Here are examples for deploying different Qumulo cluster sizes, each corresponding to a specific CloudFormation template URL.
 
+**1. 1TB File Storage Cluster (SSD Only)**
 
-Qumulo-1TB-FileStorageCluster-SSD-ONLY.template
+This template creates a 1TB capacity cluster using only SSD volumes for high performance.
 
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo1TB \
 --cluster-name qumulo1TB \
@@ -138,14 +169,13 @@ Qumulo-1TB-FileStorageCluster-SSD-ONLY.template
 --vpc-id $VPC_ID \
 --subnet-id $SUBNET_ID \
 --template-url https://s3.amazonaws.com/awsmp-fulfillment-cf-templates-prod/edeb9751-4819-40ad-a593-04b6572694e7.e37c83b0-7b23-4689-9c29-38d08cfd2952.template
+```
 
+**2. 12TB File Storage Cluster (SSD + HDD)**
 
+This template creates a 12.7TB capacity cluster using a hybrid of SSDs for cache and HDDs for data storage.
 
-Qumulo-12TB-FileStorageCluster-SSD+HDD.template
-Use this template to quickly get up and running with a 12.7TB capacity cluster. Upon launch, this stack will create 4 EC2 instances from the parameterized instance type. Each instance will contain 5x100GiB EBS gp2 volumes for SSD cache and 10x500GiB EBS st1 volumes for HDD-backed data storage.
-<https://aws.amazon.com/marketplace/pp/prodview-6ugmai2oluviy?sr=0-3&ref_=beagle&applicationId=AWSMPContessa>
-
-
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo12TBb \
 --cluster-name qumulo12TBb \
@@ -154,13 +184,13 @@ Use this template to quickly get up and running with a 12.7TB capacity cluster. 
 --subnet-id $SUBNET_ID \
 --template-url https://envoi-prod-files-public.s3.amazonaws.com/qumulo/cloud-formation/templates/Qumulo-12TB-FileStorageCluster-SSD%2BHDD.template \
 --log-level debug
+```
 
+**3. 96TB File Storage Cluster (SSD + HDD)**
 
+This template creates a 96.0TB capacity cluster with a hybrid of SSD and HDD volumes.
 
-Qumulo-96TB-FileStorageCluster-SSD+HDD.template
-Use this template to quickly get up and running with a 96.0TB capacity cluster. Upon launch, this stack will create 6 EC2 instances from the parameterized instance type. Each instance will contain 5x160GiB EBS gp2 volumes for SSD cache and 10x2000GiB EBS st1 volumes for HDD-backed data storage. 
-<https://aws.amazon.com/marketplace/pp/prodview-6hfmu7wxbuvh2?sr=0-5&ref_=beagle&applicationId=AWSMPContessa>
-
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo-12TB-SSD+HDD \
 --cluster-name qumulo-12TB-SSD+HDD \
@@ -168,12 +198,13 @@ Use this template to quickly get up and running with a 96.0TB capacity cluster. 
 --vpc-id $VPC_ID \
 --subnet-id $SUBNET_ID \
 --template-url https://envoi-prod-files-public.s3.amazonaws.com/qumulo/cloud-formation/templates/Qumulo-96TB-FileStorageCluster-SSD%2BHDD.template
+```
 
-Qumulo-103TB-Performance-FileStorageCluster-SSDOnly.template
-Use this template to quickly get up and running with a 103.2TB capacity cluster. Upon launch, this stack will create 5 EC2 instances from the parameterized instance type. Each instance will contain 8x3750GiB EBS gp2 volumes for high-performance SSD data storage.
-<https://aws.amazon.com/marketplace/pp/prodview-v75ikvi57xv66?sr=0-6&ref_=beagle&applicationId=AWSMPContessa>
+**4. 103TB Performance File Storage Cluster (SSD Only)**
 
+This template is for a high-performance 103.2TB cluster that uses only SSD volumes for maximum speed.
 
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo-103TB-SSD-ONLY \
 --cluster-name qumulo-103TB-SSD-ONLY \
@@ -181,13 +212,13 @@ Use this template to quickly get up and running with a 103.2TB capacity cluster.
 --vpc-id $VPC_ID \
 --subnet-id $SUBNET_ID \
 --template-url https://envoi-prod-files-public.s3.amazonaws.com/qumulo/cloud-formation/templates/Qumulo-103TB-Performance-FileStorageCluster-SSDOnly.template
+```
 
+**5. 270TB File Storage Cluster (SSD + HDD)**
 
+This template provisions a large 270.6TB capacity cluster using a hybrid storage model.
 
-Qumulo-270TB-FileStorageCluster-SSD+HDD.template
-Use this template to quickly get up and running with a 270.6TB capacity cluster. Upon launch, this stack will create 6 EC2 instances from the parameterized instance type. Each instance will contain 5x550GiB EBS gp2 volumes for SSD cache and 10x5632GiB EBS st1 volumes for HDD-backed data storage.
-<https://aws.amazon.com/marketplace/pp/prodview-bf2p7jfejyb7k?sr=0-7&ref_=beagle&applicationId=AWSMPContessa>
-
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo-270TB-SSD+HDD \
 --cluster-name qumulo-270TB-SSD+HDD \
@@ -195,14 +226,13 @@ Use this template to quickly get up and running with a 270.6TB capacity cluster.
 --vpc-id $VPC_ID \
 --subnet-id $SUBNET_ID \
 --template-url https://envoi-prod-files-public.s3.amazonaws.com/qumulo/cloud-formation/templates/Qumulo-270TB-FileStorageCluster-SSD%2BHDD.template
+```
 
+**6. 809TB File Storage Cluster (SSD + HDD)**
 
+This template creates a massive 809.0TB cluster for petabyte-scale workloads, combining SSDs and HDDs.
 
-Qumulo-809TB-FileStorageCluster-SSD+HDD.template
-Use this template to quickly get up and running with a 809.0TB capacity cluster. Upon launch, this stack will create 6 EC2 instances from the parameterized instance type. Each instance will contain 8x1000GiB EBS gp2 volumes for SSD cache and 16x10240GiB EBS st1 volumes for HDD-backed data storage.
-<https://aws.amazon.com/marketplace/pp/prodview-azxitkzmakbka?sr=0-4&ref_=beagle&applicationId=AWSMPContessa>
-
-
+```bash
 ./envoi_storage.py qumulo aws create-cluster \
 --stack-name qumulo-809TB-SSD+HDD \
 --cluster-name qumulo-809TB-SSD+HDD \
@@ -210,6 +240,4 @@ Use this template to quickly get up and running with a 809.0TB capacity cluster.
 --vpc-id $VPC_ID \
 --subnet-id $SUBNET_ID \
 --template-url https://envoi-prod-files-public.s3.amazonaws.com/qumulo/cloud-formation/templates/Qumulo-809TB-FileStorageCluster-SSD%2BHDD.template
-
-
 ```
