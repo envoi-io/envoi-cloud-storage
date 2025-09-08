@@ -1,26 +1,45 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# This shebang line and encoding declaration specify the interpreter and encoding for the script.
+
 import argparse
+# Used to parse command-line arguments.
 import base64
+# For encoding API tokens in Base64 for HTTP authentication.
 import http.client
+# A low-level client for making HTTP requests, used by the WekaApiClient.
 import json
+# For handling JSON data, specifically parsing API responses and formatting request bodies.
 import logging
+# A standard library for logging messages and debugging.
 import os
+# Provides a way of using operating system dependent functionality, though not extensively used here.
 import sys
+# Provides access to system-specific parameters and functions, used for handling missing dependencies.
 import urllib.parse
+# For encoding URL query parameters.
 from types import SimpleNamespace
+# A class to create objects with a namespace for attributes, used to store parsed arguments.
 
 try:
     # noinspection PyUnresolvedReferences
     import boto3
+# This is the AWS SDK for Python, essential for interacting with AWS services like CloudFormation.
 except ImportError:
     if __name__ == '__main__':
+        # Checks if the script is being run directly.
         print("Missing dependency boto3. Try running 'pip install boto3'")
         sys.exit(1)
+    # The script exits with an error if the boto3 library is not installed.
 
 LOG = logging.getLogger(__name__)
+# Initializes a logger object for the current module.
 
 
 def add_from_namespace_to_dict_if_not_none(source_obj, source_key, target_obj, target_key):
+    # This helper function checks if an attribute exists and is not None in a source object (like the parsed arguments).
+    # If it exists, it copies the value to a target dictionary with a specified key.
     if hasattr(source_obj, source_key):
         value = getattr(source_obj, source_key)
         if value is not None:
@@ -28,15 +47,21 @@ def add_from_namespace_to_dict_if_not_none(source_obj, source_key, target_obj, t
 
 
 class CustomFormatter(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+    # This class customizes the help output of the argument parser.
+    # It allows newlines in the help text and shows default values for arguments.
 
     def _split_lines(self, text, width):
+        # Overrides the default line-splitting behavior to preserve newlines in help text.
         return text.splitlines()
 
 
 class AwsCloudFormationHelper:
+    # A utility class for interacting with the AWS CloudFormation service using boto3.
 
     @classmethod
     def client_from_opts(cls, cfn_client_args=None, opts=None):
+        # A class method to create a CloudFormation client instance.
+        # It handles optional AWS profile and region settings from the command-line options.
         if cfn_client_args is None:
             cfn_client_args = {}
 
@@ -44,7 +69,9 @@ class AwsCloudFormationHelper:
             opts = SimpleNamespace()
 
         session_args = {}
+        # Populates session arguments for boto3.Session if an AWS profile is specified.
         add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', session_args, 'profile_name')
+        # Populates client arguments if an AWS region is specified.
         add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
 
         if len(session_args) != 0:
@@ -57,6 +84,8 @@ class AwsCloudFormationHelper:
     @classmethod
     def create_stack(cls, stack_name, template_url, cfn_role_arn=None, template_parameters=None, client=None,
                      cfn_client_args=None):
+        # A class method to create a CloudFormation stack.
+        # It takes the stack name, template URL, and optional parameters and role ARN.
         if client is None:
             if cfn_client_args is None:
                 cfn_client_args = {}
@@ -67,16 +96,20 @@ class AwsCloudFormationHelper:
             'TemplateURL': template_url
         }
 
+        # Adds optional parameters and role ARN to the stack creation arguments.
         if template_parameters is not None:
             cfn_create_stack_args['Parameters'] = template_parameters
 
         if cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = cfn_role_arn
 
+        # Calls the boto3 create_stack method with the prepared arguments.
         return client.create_stack(**cfn_create_stack_args)
 
     @classmethod
     def populate_template_parameters_from_opts(cls, template_parameters, opts, field_map):
+        # A helper method to populate a list of CloudFormation parameters from parsed command-line options.
+        # It uses a field map to match option names to CloudFormation parameter names.
         for opts_param_name, template_param_name in field_map.items():
             value = getattr(opts, opts_param_name, None)
             if value is not None:
@@ -89,18 +122,24 @@ class AwsCloudFormationHelper:
 
 
 class EnvoiArgumentParser(argparse.ArgumentParser):
+    # A custom ArgumentParser class.
 
     def to_dict(self):
+        # A method to convert the parsed arguments into a dictionary, including default values.
+        # It iterates through the parser's actions to find and store the default values.
         # noinspection PyProtectedMember
         return {a.dest: a.default for a in self._actions if isinstance(a, argparse._StoreAction)}
 
 
 class WekaApiClient:
+    # A client for interacting with the WekaIO API.
+
     DEFAULT_HOST = "get.weka.io"
     DEFAULT_HOST_PORT = 443
     DEFAULT_BASE_PATH = "/dist/v1"
 
     def __init__(self, token, host=DEFAULT_HOST, host_port=DEFAULT_HOST_PORT, base_path=DEFAULT_BASE_PATH):
+        # Initializes the API client with a token and optional host/port.
         self.conn = None
         self.token = token
         self.host = host
@@ -111,13 +150,16 @@ class WekaApiClient:
         self.init_connection()
 
     def init_connection(self):
+        # Initializes an HTTPS connection to the WekaIO API host.
         self.conn = http.client.HTTPSConnection(self.host, self.host_port)
 
     def init_auth_header(self):
+        # Prepares the HTTP Authorization header using the provided token.
         encoded_token = base64.b64encode(f"{self.token}:".encode('ascii')).decode('ascii')
         self.default_headers["Authorization"] = f"Basic {encoded_token}"
 
     def prepare_headers(self, headers=None, default_headers=None):
+        # Merges default headers with any provided custom headers.
         if headers is None:
             _headers = default_headers or self.default_headers
         else:
@@ -128,6 +170,8 @@ class WekaApiClient:
 
     @classmethod
     def handle_response(cls, response):
+        # A static method to read and decode the response body from an HTTP request.
+        # It handles different content types (JSON, text) and decodes them appropriately.
         response_body = response.read()
         content_type, header_attribs_raw = response.getheader("Content-Type").split(";")
         header_attribs = dict(map(lambda x: x.strip().split("="), header_attribs_raw.split(",")))
@@ -145,6 +189,7 @@ class WekaApiClient:
             return response_body
 
     def get(self, endpoint, query_params=None, headers=None, default_headers=None):
+        # Sends a GET request to a specified API endpoint with optional query parameters and headers.
         url = self.base_path + "/" + endpoint
         if query_params:
             url += "?" + urllib.parse.urlencode(query_params)
@@ -153,6 +198,7 @@ class WekaApiClient:
         return self.__class__.handle_response(response)
 
     def post(self, endpoint, data, query_params=None, headers=None, default_headers=None):
+        # Sends a POST request with JSON data to a specified API endpoint.
         url = self.base_path + "/" + endpoint
         if query_params:
             url += "?" + urllib.parse.urlencode(query_params)
@@ -162,11 +208,13 @@ class WekaApiClient:
         return self.__class__.handle_response(response)
 
     def get_template_releases(self, page=1):
+        # Retrieves a list of available WekaIO template releases.
         endpoint = "release"
         query_params = {"page": page}
         return self.get(endpoint, query_params)
 
     def get_latest_template_release(self):
+        # Fetches and returns the latest available WekaIO template release.
         get_template_releases_response = self.get_template_releases()
         return get_template_releases_response["objects"][0]
 
@@ -177,7 +225,8 @@ class WekaApiClient:
                                          client_ami_id=None,
                                          backend_instance_type=None,
                                          backend_instance_count=None):
-        # @see https://docs.weka.io/install/aws/weka-installation-on-aws-using-the-cloud-formation/cloudformation
+        # This method generates a WekaIO CloudFormation template by making a POST request to the API.
+        # It constructs the request body based on the provided instance and version details.
         if weka_version is None or weka_version == 'latest':
             latest_release = self.get_latest_template_release()
             weka_version = latest_release["id"]
@@ -185,6 +234,7 @@ class WekaApiClient:
         endpoint = f'aws/cfn/{weka_version}'
 
         cluster = []
+        # Adds client and backend cluster information to the request data if counts are provided.
         if client_instance_count is not None:
             client = {
                 "role": "client",
@@ -208,16 +258,20 @@ class WekaApiClient:
             "cluster": cluster
         }
 
+        # Sends the POST request to the API to generate the template.
         template_response = self.post(endpoint, data)
         return template_response
 
 
 class EnvoiCommand:
+    # A base class for all commands.
+
     command_dest = "command"
     description = ""
     subcommands = {}
 
     def __init__(self, opts=None, auto_exec=True):
+        # Initializes the command with parsed options. It can be set to run automatically.
         self.opts = opts or {}
         if auto_exec:
             self.run()
@@ -225,6 +279,8 @@ class EnvoiCommand:
     @classmethod
     def init_parser(cls, command_name=None, parent_parsers=None, subparsers=None,
                     formatter_class=CustomFormatter):
+        # A class method to initialize an argument parser for a specific command.
+        # It handles setting up subparsers for nested commands.
         if subparsers is None:
             parser = EnvoiArgumentParser(description=cls.description, parents=parent_parsers or [],
                                          formatter_class=formatter_class)
@@ -241,6 +297,7 @@ class EnvoiCommand:
 
     @classmethod
     def process_subcommands(cls, parser, parent_parsers, subcommands, dest=None, add_subparser_args=None):
+        # A method to recursively process and set up subparsers for nested commands.
         subcommand_parsers = {}
         if add_subparser_args is None:
             add_subparser_args = {}
@@ -266,11 +323,15 @@ class EnvoiCommand:
         return parser
 
     def run(self):
+        # A placeholder method that must be implemented by child classes to define the command's behavior.
         pass
 
 
 class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
+    # A command class for creating a Hammerspace cluster on AWS.
+
     cfn_param_names = {
+        # A dictionary mapping command-line argument names to CloudFormation parameter names.
         "DeploymentType": "deployment_type",
         "AnvilConfiguration": "anvil_configuration",
         "AnvilInstanceType": "anvil_instance_type",
@@ -288,9 +349,9 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
     @classmethod
     def init_parser(cls, **kwargs):
+        # Initializes the argument parser specifically for the Hammerspace `create-cluster` command.
+        # It defines arguments for CloudFormation settings and Hammerspace-specific template parameters.
         parser = super().init_parser(**kwargs)
-
-        """Instantiates an argument parser with the given parameters."""
 
         # CloudFormation Specific Arguments
         parser.add_argument("--template-url",
@@ -311,6 +372,8 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
                             help="The ARN for the IAM role to use for creating the CloudFormation stack")
 
         # CloudFormation Template Parameter Arguments
+        # The following lines define the arguments that correspond to parameters in the CloudFormation template.
+        # This includes instance types, disk sizes, VPC details, etc.
         parser.add_argument("--anvil-configuration", choices=["standalone", "cluster"],
                             default="standalone",
                             help="Anvil configuration: standalone or cluster")
@@ -349,12 +412,15 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
         return parser
 
     def run(self, opts=None):
+        # The main execution method for the command.
+        # It prepares the CloudFormation stack creation parameters and calls the boto3 client.
         if opts is None:
             opts = self.opts
 
         cfn_template_url = opts.get("template-url")
 
         template_parameters = []
+        # Populates the CloudFormation template parameters from the parsed options.
         for template_param_name, arg_name in self.cfn_param_names.items():
             value = getattr(opts, arg_name)
             if value is not None:
@@ -367,9 +433,11 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
             'Capabilities': ['CAPABILITY_IAM']
         }
 
+        # Adds the optional IAM role ARN to the arguments.
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
 
+        # Prepares the boto3 client with the correct profile and region.
         cfn_client_args = {}
         if opts.aws_profile is not None:
             cfn_client_args['profile_name'] = opts.aws_profile
@@ -383,22 +451,27 @@ class EnvoiStorageHammerspaceAwsCreateClusterCommand(EnvoiCommand):
 
 
 class EnvoiStorageHammerspaceAwsCommand(EnvoiCommand):
+    # This class serves as a namespace for the Hammerspace AWS commands.
     subcommands = {
         'create-cluster': EnvoiStorageHammerspaceAwsCreateClusterCommand,
     }
 
 
 class EnvoiStorageHammerspaceCommand(EnvoiCommand):
+    # This class serves as a namespace for the Hammerspace commands.
     subcommands = {
         'aws': EnvoiStorageHammerspaceAwsCommand,
     }
 
 
 class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
+    # This command class handles the creation of a Qumulo cluster on AWS.
+    # It defines a comprehensive set of arguments for configuring the Qumulo CloudFormation template.
 
     @classmethod
     def init_parser(cls, parent_parsers=None, **kwargs):
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+        # Defines arguments for the Qumulo cluster, including template URL, stack name, and AWS settings.
         parser.add_argument('--template-url', type=str,
                             default="https://envoi-prod-files-public.s3.amazonaws.com"
                                     "/qumulo/cloud-formation/templates/qumulo.cfn-template.json",
@@ -414,7 +487,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument('--cfn-role-arn', type=str, required=False,
                             help='IAM Role to use when creating the CloudFormation stack')
 
-        # AWS Template Configuration - Cloud.Next Existing VPC - Single AZ - Advanced v2.2
+        # Defines arguments for the CloudFormation template parameters specific to Qumulo.
         parser.add_argument("--qs-s3-bucket-name", type=str, required=True,
                             help="Qumulo software S3 bucket name")
         parser.add_argument("--qs-s3-key-prefix", type=str, required=True,
@@ -426,7 +499,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument("--env-type", type=str, required=True,
                             help="Environment type")
 
-        # AWS network configuration
+        # Arguments for AWS network configuration.
         parser.add_argument("--vpc-id", required=True,
                             help="Qumulo cluster VPC ID")
         parser.add_argument("--security-group-cidr-1", default="10.0.0.0/16",
@@ -445,7 +518,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         parser.add_argument("--q-float-record-name", type=str,
                             help="Route 53 record name for Qumulo-cluster floating IP addresses")
 
-        # Qumulo file data platform configuration
+        # Arguments for Qumulo file data platform configuration.
         parser.add_argument("--q-ami-id", type=str, help="Qumulo AMI ID")
         parser.add_argument("--q-shared-ami", default="NO", help="Qumulo shared AMI")
         parser.add_argument("--q-debian-package", default="DEB", help="Debian or RPM package")
@@ -468,9 +541,11 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         return parser
 
     def run(self, opts=None):
+        # The main execution method for the Qumulo command.
         if opts is None:
             opts = self.opts
         cfn_client_args = {}
+        # Populates the CloudFormation client arguments from the command-line options.
         add_from_namespace_to_dict_if_not_none(opts, 'aws_profile', cfn_client_args, 'profile_name')
         add_from_namespace_to_dict_if_not_none(opts, 'aws_region', cfn_client_args, 'region_name')
 
@@ -478,6 +553,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
         template_parameters = []
 
         template_parameters_to_check = {
+            # This dictionary maps command-line arguments to the corresponding CloudFormation parameter names.
             'qs_s3_bucket_name': 'QSS3BucketName',
             'qs_s3_key_prefix': 'QSS3KeyPrefix',
             'qs_s3_region': 'QSS3BucketRegion',
@@ -516,6 +592,7 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
             'term_protection': 'TermProtection',
         }
 
+        # Iterates through the mapping and adds parameters to the list if their corresponding argument exists.
         for opts_param_name, template_param_name in template_parameters_to_check.items():
             if hasattr(opts, opts_param_name):
                 value = getattr(opts, opts_param_name)
@@ -528,16 +605,19 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
             'Capabilities': ['CAPABILITY_IAM']
         }
 
+        # Ensures the template URL is provided before creating the stack.
         if hasattr(opts, 'template_url'):
             cfn_create_stack_args['TemplateURL'] = opts.template_url
         else:
             raise ValueError("Missing required parameter template_url")
 
+        # Adds the optional CloudFormation role ARN.
         if opts.cfn_role_arn is not None:
             cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
 
         response = client.create_stack(**cfn_create_stack_args)
         stack_id = response['StackId']
+        # Returns the stack ID if the creation request is successful.
         if stack_id is not None:
             response = f"Stack ID {stack_id}"
 
@@ -545,10 +625,14 @@ class EnvoiStorageQumuloAwsCreateClusterCommand(EnvoiCommand):
 
 
 class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
+    # A legacy command for creating a Qumulo cluster on AWS with a simpler set of arguments.
+    # It demonstrates how different versions or configurations can be handled with separate classes.
 
     @classmethod
     def init_parser(cls, parent_parsers=None, **kwargs):
+        # Defines the argument parser for the legacy Qumulo command.
         parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
+        # It includes a more basic set of parameters compared to the newer Qumulo command.
         parser.add_argument('--template-url', type=str,
                             default="https://envoi-prod-files-public.s3.amazonaws.com"
                                     "/qumulo/cloud-formation/templates/qumulo.cfn-template.json",
@@ -571,7 +655,7 @@ class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
                             help="Qumulo cluster VPC ID")
         parser.add_argument("--subnet-id", type=str, required=True, help="Subnet ID")
 
-        # Optional arguments
+        # Optional arguments with default values.
         parser.add_argument("--iam-instance-profile-name", default="",
                             help="The name (*not* the ARN) of the IAM instance profile to be "
                                  "assigned to each instance in the cluster.")
@@ -585,6 +669,7 @@ class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
         return parser
 
     def run(self, opts=None):
+        # Execution method for the legacy Qumulo command, which is very similar to the main Qumulo command's logic.
         if opts is None:
             opts = self.opts
         cfn_client_args = {}
@@ -595,6 +680,7 @@ class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
         template_parameters = []
 
         template_parameters_to_check = {
+            # Maps legacy argument names to CloudFormation parameter names.
             'cluster_name': 'ClusterName',
             'iam_instance_profile': 'IamInstanceProfile',
             'instance_type': 'InstanceType',
@@ -634,34 +720,41 @@ class EnvoiStorageQumuloLegacyAwsCreateClusterCommand(EnvoiCommand):
 
 
 class EnvoiStorageQumuloAwsCommand(EnvoiCommand):
+    # Namespace class for Qumulo AWS commands.
     subcommands = {
         'create-cluster': EnvoiStorageQumuloAwsCreateClusterCommand,
     }
 
 
 class EnvoiStorageQumuloCommand(EnvoiCommand):
+    # Namespace class for Qumulo commands.
     subcommands = {
         'aws': EnvoiStorageQumuloAwsCommand,
     }
 
 
 class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
+    # This class handles the creation of a WekaIO stack on AWS.
+    # It's unique because it first uses the Weka API to dynamically generate a CloudFormation template.
+
     @classmethod
     def init_parser(cls, **kwargs):
+        # Initializes the parser for the WekaIO command.
         parser = super().init_parser(**kwargs)
 
-        # Weka CloudFormation Template Generation Arguments
+        # Defines arguments for Weka API token and template URL.
         parser.add_argument('--token', type=str, required=True, help='API Token.')
         parser.add_argument('--template-url', type=str, required=True,
                             help='The URL to the CLoudFormation template')
 
+        # The following methods are used to add groups of arguments to the parser.
         parser = cls.add_uniq_arguments(parser)
         parser = cls.add_template_param_arguments(parser, required_params_required=True)
         return parser
 
     @classmethod
     def add_uniq_arguments(cls, parser):
-        # CloudFormation Specific Arguments
+        # Adds generic CloudFormation-related arguments to the parser.
         parser.add_argument('--stack-name', type=str, default="Weka",
                             help='Stack name.')
         parser.add_argument('--aws-region', type=str, required=False,
@@ -676,9 +769,8 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
 
     @classmethod
     def add_template_param_arguments(cls, parser, required_params_required=True):
-        # CloudFormation Template Parameter Arguments
-
-        # required template parameters
+        # Adds arguments that correspond to the WekaIO CloudFormation template parameters.
+        # These are crucial for configuring the WekaIO cluster.
         parser.add_argument('--template-param-key-name', type=str, required=required_params_required,
                             default=argparse.SUPPRESS,
                             help='Subnet ID of the subnet in which the cluster will be installed. ')
@@ -687,329 +779,4 @@ class EnvoiStorageWekaAwsCreateStackCommand(EnvoiCommand):
                             help='A key with which you can connect to the new instances. ')
         parser.add_argument('--template-param-vpc-id', type=str, required=required_params_required,
                             default=argparse.SUPPRESS,
-                            help='VPC ID of the VPC in which the cluster will be installed. ')
-
-        # optional template parameters
-        parser.add_argument('--template-param-admin-password', type=str, default=argparse.SUPPRESS,
-                            help='Password for first "admin" user created in the cluster (default: "admin")'
-                                 "\nNon-default password must contain at least 8 characters, with at least one "
-                                 'uppercase letter, one lowercase letter, and one number or special character')
-        parser.add_argument('--template-param-existing-s3-bucket-name', type=str, required=False,
-                            help='Existing S3 bucket to attach to the filesystem created by the template.'
-                                 '\nThe bucket has to be in the same region where the cluster is deployed. '
-                                 '\nIf this parameter is provided, the New S3 Bucket parameter is ignored.')
-        parser.add_argument('--template-param-network-topology', type=str, required=False,
-                            help='If you are deploying in a private VPC without public access to the '
-                                 'internet (not using NAT),'
-                                 '\nyou can use either a custom proxy or a Weka VPC endpoint to access Weka services.'
-                                 '\nIf you have not already created a VPC endpoint to Weka services or an S3 Gateway '
-                                 'within this VPC,'
-                                 '\nfollow the link to create one: '
-                                 'https://console.aws.amazon.com/cloudformation/home'
-                                 '#/stacks/create/review?templateURL=https://proxy-prerequisites.s3.eu-central-1'
-                                 '.amazonaws.com/prerequisites.json&stackName=proxy-prerequisites')
-        parser.add_argument('--template-param-new-s3-bucket-name', type=str, required=False,
-                            help='New S3 bucket to create and attach to the filesystem created by the '
-                                 'template. The bucket will not be deleted when the stack is destroyed.')
-        parser.add_argument('--template-param-tiering-ssd-percent', type=str, required=False,
-                            help='Existing S3 bucket to attach to the filesystem created by the template. '
-                                 '\nThe bucket has to be in the same region where the cluster is deployed.'
-                                 '\nIf this parameter is provided, the New S3 Bucket parameter is ignored.')
-        parser.add_argument('--template-param-weka-volume-type', type=str, required=False,
-                            help='Volume type for the Weka partition.\nGP3 is not yet available in all zones/regions '
-                                 '(e.g., not available in local zones).'
-                                 '\nIn such a case, you must select the GP2 volume type. '
-                                 '\nWhen available, using GP3 is preferred.')
-
-        return parser
-
-    @classmethod
-    def create_stack(cls, opts, template_url=None):
-        template_parameters = [{'ParameterKey': 'DistToken', 'ParameterValue': opts.token}]
-
-        template_parameters_to_check = {
-            # Required
-            'template_param_key_name': 'KeyName',
-            'template_param_subnet_id': 'SubnetId',
-            'template_param_vpc_id': 'VpcId',
-
-            # Optional
-            'template_param_admin_password': 'AdminPassword',
-            'template_param_existing_s3_bucket_name': 'ExistingS3BucketName',
-            'template_param_network_topology': 'NetworkTopology',
-            'template_param_new_s3_bucket_name': 'NewS3BucketName',
-            'template_param_tiering_ssd_percent': 'TieringSsdPercent'
-        }
-
-        template_parameters = AwsCloudFormationHelper.populate_template_parameters_from_opts(
-            template_parameters=template_parameters,
-            opts=opts,
-            field_map=template_parameters_to_check)
-
-        cfn_create_stack_args = {
-            'StackName': opts.stack_name,
-            'Parameters': template_parameters,
-            'Capabilities': ['CAPABILITY_IAM']
-        }
-
-        if template_url is not None:
-            cfn_create_stack_args['TemplateURL'] = template_url
-        elif hasattr(opts, 'template_url'):
-            cfn_create_stack_args['TemplateURL'] = opts.template_url
-        else:
-            raise ValueError("Missing required parameter template_url")
-
-        if opts.cfn_role_arn is not None:
-            cfn_create_stack_args['RoleARN'] = opts.cfn_role_arn
-
-        client = AwsCloudFormationHelper.client_from_opts(opts=opts)
-
-        response = client.create_stack(**cfn_create_stack_args)
-        return response
-
-    def run(self, opts=None, template_url=None):
-        if opts is None:
-            opts = self.opts
-
-        response = self.__class__.create_stack(opts=opts, template_url=template_url)
-        stack_id = response['StackId']
-        if stack_id is not None:
-            response = f"Stack ID {stack_id}"
-
-        return response
-
-
-class EnvoiStorageWekaAwsGenerateTemplateCommand(EnvoiCommand):
-    @classmethod
-    def init_parser(cls, **kwargs):
-        parser = super().init_parser(**kwargs)
-
-        # Weka CloudFormation Template Generation Arguments
-        parser.add_argument('--token', type=str, required=True, default=argparse.SUPPRESS,
-                            help='API Token.')
-
-        return cls.add_uniq_arguments(parser)
-
-    @classmethod
-    def add_uniq_arguments(cls, parser):
-        parser.add_argument('--weka-version', type=str, default='latest',
-                            help='Weka version.')
-        parser.add_argument('--backend-instance-count', type=int, default=6,
-                            help='Backend instance count.')
-        parser.add_argument('--backend-instance-type', type=str, default='i3en.2xlarge',
-                            help='Backend instance type.')
-        parser.add_argument('--client-instance-count', type=int, default=0,
-                            help='Client instance count.')
-        parser.add_argument('--client-instance-type', type=str, default='r3.xlarge',
-                            help='Client instance type.')
-        parser.add_argument('--client-ami-id', type=str, required=False,
-                            help='Client AMI ID.')
-        return parser
-
-    @classmethod
-    def generate_template(cls, opts):
-        client = WekaApiClient(token=opts.token)
-
-        generate_cloudformation_template_opts = {
-            "weka_version": opts.weka_version,
-            "client_instance_type": opts.client_instance_type,
-            "client_instance_count": opts.client_instance_count,
-            "backend_instance_type": opts.backend_instance_type,
-            "backend_instance_count": opts.backend_instance_count,
-        }
-
-        generate_cloudformation_template_response = client.generate_cloudformation_template(
-            **generate_cloudformation_template_opts)
-        return generate_cloudformation_template_response
-
-    def run(self, opts=None):
-        if opts is None:
-            opts = self.opts
-
-        response = self.__class__.generate_template(opts=opts)
-
-        try:
-            response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
-        except TypeError:
-            response_to_print = response
-        print(response_to_print)
-
-        return response
-
-
-class EnvoiStorageWekaAwsCreateTemplateAndStackCommand(EnvoiCommand):
-    @classmethod
-    def init_parser(cls, parent_parsers=None, **kwargs):
-        parser = super().init_parser(parent_parsers=parent_parsers, **kwargs)
-
-        # Weka CloudFormation Template Generation Arguments
-        parser.add_argument('--token', type=str, required=True, help='API Token.')
-        parser = EnvoiStorageWekaAwsGenerateTemplateCommand.add_uniq_arguments(parser)
-
-        parser.add_argument('--create-stack', action='store', default=True,
-                            help='Triggers the Creation of the CloudFormation stack.')
-        parser = EnvoiStorageWekaAwsCreateStackCommand.add_uniq_arguments(parser)
-        parser = EnvoiStorageWekaAwsCreateStackCommand.add_template_param_arguments(parser,
-                                                                                    required_params_required=False)
-        return parser
-
-    def run(self, opts=None):
-        if opts is None:
-            opts = self.opts
-
-        generate_cloudformation_template_response = (EnvoiStorageWekaAwsGenerateTemplateCommand
-                                                     .generate_template(opts=opts))
-
-        if opts.create_stack:
-            template_url = generate_cloudformation_template_response['url']
-            response = EnvoiStorageWekaAwsCreateStackCommand(opts=opts, auto_exec=False).run(template_url=template_url)
-        else:
-            response = generate_cloudformation_template_response
-
-        try:
-            response_as_string = str(response)
-            if response_as_string.startswith("{") and response_as_string.endswith("}"):
-                response_to_print = json.dumps(response, indent=4, sort_keys=True, default=str)
-            else:
-                response_to_print = response_as_string
-        except TypeError:
-            response_to_print = response
-        print(response_to_print)
-
-        return response
-
-
-class EnvoiStorageWekaAwsCommand(EnvoiCommand):
-    subcommands = {
-        'create-stack': EnvoiStorageWekaAwsCreateStackCommand,
-        'create-template': EnvoiStorageWekaAwsGenerateTemplateCommand,
-        'create-template-and-stack': EnvoiStorageWekaAwsCreateTemplateAndStackCommand,
-    }
-
-
-class EnvoiStorageWekaCommand(EnvoiCommand):
-    subcommands = {
-        'aws': EnvoiStorageWekaAwsCommand,
-    }
-
-
-class EnvoiCommandLineUtility(EnvoiCommand):
-
-    @classmethod
-    def parse_command_line(cls, cli_args, env_vars, subcommands=None):
-        parent_parser = EnvoiArgumentParser(add_help=False)
-        parent_parser.add_argument("--log-level", dest="log_level", default="WARNING",
-                                   help="Set the logging level (options: DEBUG, INFO, WARNING, ERROR, CRITICAL)")
-
-        # main parser
-        parser = EnvoiArgumentParser(description='Envoi Storage Command Line Utility', parents=[parent_parser])
-
-        if subcommands is not None:
-            subcommand_parsers = {}
-            subparsers = parser.add_subparsers(dest='command')
-            subparsers.required = True
-
-            for subcommand_name, subcommand_handler in subcommands.items():
-                if subcommand_handler is None:
-                    continue
-                subcommand_parser = subcommand_handler.init_parser(command_name=subcommand_name,
-                                                                   parent_parsers=[parent_parser],
-                                                                   subparsers=subparsers)
-                subcommand_parser.required = True
-                subcommand_parsers[subcommand_name] = subcommand_parser
-
-        (opts, unknown_args) = parser.parse_known_args(cli_args)
-        return opts, unknown_args, env_vars, parser
-
-    @classmethod
-    def handle_cli_execution(cls):
-        """
-        Handles the execution of the command-line interface (CLI) for the application.
-
-        :returns: Returns 0 if successful, 1 otherwise.
-        """
-        cli_args = sys.argv[1:]
-        env_vars = os.environ.copy()
-
-        subcommands = {
-            "hammerspace": EnvoiStorageHammerspaceCommand,
-            "qumulo": EnvoiStorageQumuloCommand,
-            "weka": EnvoiStorageWekaCommand,
-        }
-
-        opts, _unhandled_args, env_vars, parser = cls.parse_command_line(cli_args, env_vars, subcommands)
-
-        ch = logging.StreamHandler()
-        ch.setLevel(opts.log_level.upper())
-        LOG.addHandler(ch)
-
-        try:
-            # If 'handler' is in args, run the correct handler
-            if hasattr(opts, 'handler'):
-                opts.handler(opts)
-            else:
-                parser.print_help()
-                return 1
-
-            return 0
-        except Exception as e:
-            if LOG.isEnabledFor(logging.DEBUG):
-                LOG.exception(e)  # Log full exception with stack trace in debug mode
-            else:
-                LOG.error(e.args if hasattr(e, 'args') else e)  # Log only the error message in non-debug mode
-            return 1
-
-
-def lambda_run_command(command, args):
-    # Normalize the input to mimic the argparse output.
-    parser = command.init_parser()
-    opts_dict = parser.to_dict()
-    opts_dict.update(args)
-    print('Opts:', opts_dict)
-    opts = SimpleNamespace(**opts_dict)
-
-    response = command(opts, auto_exec=False).run()
-    response_type = type(response)
-    print("Response Type", response_type)
-    print("Response", response)
-
-    return response
-
-
-def lambda_get_command_info_from_event(event):
-    """
-    Determine the command and its arguments from the given event.
-
-    :param event: The event object containing the command details.
-    :return: A tuple containing the command and its arguments.
-
-    :raises ValueError: If the event source is unhandled.
-
-    note:: The `event` parameter should be a dictionary object.
-
-    """
-    command_name = os.getenv('COMMAND_NAME', 'EnvoiStorageWekaAwsCommand')
-    command = globals()[command_name]
-    if 'eventSourceArn' in event:
-        event_source_arn = event['eventSourceArn']
-        if 'body' in event:
-            command_args = json.loads(event['body'])
-        else:
-            raise ValueError(f"Unhandled event source: {event_source_arn}")
-            # records = event['Records']
-            # record = records[0]
-    else:
-        command_args = event
-
-    return command, command_args
-
-
-def lambda_handler(event, _context):
-    print("Received event: " + json.dumps(event, indent=2))
-    command, command_args = lambda_get_command_info_from_event(event)
-    return lambda_run_command(command, command_args)
-
-
-if __name__ == '__main__':
-    EXIT_CODE = EnvoiCommandLineUtility.handle_cli_execution()
-    sys.exit(EXIT_CODE)
+                            help='VPC ID of the VPC. ')
